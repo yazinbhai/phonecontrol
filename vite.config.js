@@ -8,6 +8,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    base: process.env.NODE_ENV === 'production' ? '/phonecontrol/' : '/',
     server: {
         https: true,
         host: '0.0.0.0',

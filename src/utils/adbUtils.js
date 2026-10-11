@@ -7,7 +7,9 @@ import {ReadableStream} from '@yume-chan/stream-extra';
  * @returns {Promise<ArrayBuffer>} 返回服务端二进制文件的 ArrayBuffer
  */
 export const fetchServerBinary = async (path) => {
-    const serverUrl = new URL(path, import.meta.url);
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    const base = import.meta.env.BASE_URL || '/';
+    const serverUrl = new URL(base + cleanPath, window.location.origin);
     const response = await fetch(serverUrl);
     return await response.arrayBuffer();
 };
