@@ -26,47 +26,11 @@
           <el-icon :size="16"><FullScreen /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-dropdown trigger="click" @command="handleCommand">
-        <el-tooltip effect="dark" :content="fitModeTooltip" placement="top">
-          <el-button class="fit-mode-btn">
-            <el-icon :size="16"><ScaleToOriginal /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <template #dropdown>
-          <el-dropdown-menu class="screen-mode-menu">
-            <el-dropdown-item command="fill" :class="{ 'is-selected': fitMode === 'fill' }">
-              <span class="menu-item-row">
-                <span class="mode-icon">🖥️</span>
-                <span><strong>Fill Mode</strong> (Stretch to Fill)</span>
-              </span>
-            </el-dropdown-item>
-            <el-dropdown-item command="20:9" :class="{ 'is-selected': fitMode === '20:9' }">
-              <span class="menu-item-row">
-                <span class="mode-icon">📱</span>
-                <span><strong>20:9 Mode</strong> (Native Phone Ratio)</span>
-              </span>
-            </el-dropdown-item>
-            <el-dropdown-item command="11.6" :class="{ 'is-selected': fitMode === '11.6' }">
-              <span class="menu-item-row">
-                <span class="mode-icon">💻</span>
-                <span><strong>11.6" Screen</strong> (16:9 Widescreen)</span>
-              </span>
-            </el-dropdown-item>
-            <el-dropdown-item divided command="adb-11.6">
-              <span class="menu-item-row adb-action">
-                <span class="mode-icon">⚡</span>
-                <span>Adapt Phone to 11.6" (ADB 16:9)</span>
-              </span>
-            </el-dropdown-item>
-            <el-dropdown-item command="adb-reset">
-              <span class="menu-item-row adb-action">
-                <span class="mode-icon">↺</span>
-                <span>Reset Phone to 20:9 (ADB Native)</span>
-              </span>
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <el-tooltip effect="dark" :content="fitModeTooltip" placement="top" v-if="isFullscreen">
+        <el-button @click="handleToggleFitMode" class="fit-mode-btn">
+          <el-icon :size="16"><ScaleToOriginal /></el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
   </div>
 </template>
@@ -93,20 +57,20 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggle-fullscreen', 'set-fit-mode', 'toggle-fit-mode', 'apply-adb-mode']);
+const emit = defineEmits(['toggle-fullscreen', 'toggle-fit-mode']);
 
 const fitModeTooltip = computed(() => {
   if (props.fitMode === 'fill') {
-    return 'Display: Fill Mode (Stretch) - Click to change (S)';
-  } else if (props.fitMode === '20:9') {
-    return 'Display: 20:9 Native Ratio - Click to change (S)';
-  } else if (props.fitMode === '11.6') {
-    return 'Display: 11.6" Screen (16:9) - Click to change (S)';
+    return 'Aspect Ratio: Stretch to Fill (No black bars) - Click to toggle (S)';
+  } else if (props.fitMode === 'cover') {
+    return 'Aspect Ratio: Zoom to Fill (Proportional) - Click to toggle (S)';
+  } else {
+    return 'Aspect Ratio: Original (Black bars) - Click to toggle (S)';
   }
-  return 'Display: Aspect Ratio Options (S)';
 });
 
 const controlBarStyle = computed(() => {
+  // If container width is available, set to container width
   if (props.containerWidth && props.containerWidth > 0) {
     return {
       width: `${props.containerWidth}px`,
@@ -129,14 +93,8 @@ const handleToggleFullscreen = () => {
   emit('toggle-fullscreen');
 };
 
-const handleCommand = (command) => {
-  if (command === 'adb-11.6') {
-    emit('apply-adb-mode', '11.6');
-  } else if (command === 'adb-reset') {
-    emit('apply-adb-mode', 'reset');
-  } else {
-    emit('set-fit-mode', command);
-  }
+const handleToggleFitMode = () => {
+  emit('toggle-fit-mode');
 };
 </script>
 
@@ -157,28 +115,13 @@ const handleCommand = (command) => {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  padding: 0 30px;
+  padding: 0 50px;
 }
 
 .el-button {
   border: none;
   margin: 0;
   padding: 8px;
-}
-
-.menu-item-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.mode-icon {
-  font-size: 16px;
-}
-
-.adb-action {
-  color: #409eff;
 }
 
 /* 全屏模式下的样式 */
@@ -188,12 +131,12 @@ const handleCommand = (command) => {
 }
 
 .fullscreen-mode .button-container {
-  padding: 0 15px;
+  padding: 0 20px;
   display: flex;
   justify-content: space-around;
 }
 
-.fullscreen-mode :deep(.el-button) {
+.fullscreen-mode .el-button {
   background-color: rgba(60, 60, 60, 0.9);
   border-radius: 50%;
   width: 44px;
@@ -207,7 +150,7 @@ const handleCommand = (command) => {
   border: 1px solid rgba(100, 100, 100, 0.5);
 }
 
-.fullscreen-mode :deep(.el-button:hover) {
+.fullscreen-mode .el-button:hover {
   background-color: rgba(80, 80, 80, 1);
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -217,11 +160,5 @@ const handleCommand = (command) => {
   color: rgba(255, 255, 255, 0.95);
   font-size: 20px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-}
-
-:deep(.el-dropdown-menu__item.is-selected) {
-  background-color: #ecf5ff;
-  color: #409eff;
-  font-weight: 600;
 }
 </style>
