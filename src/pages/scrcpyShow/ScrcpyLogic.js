@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { InspectStream, ReadableStream } from '@yume-chan/stream-extra';
-import { getAdbInstance } from '@/utils/adbManager.js';
+import { getAdbInstance, executeCommand } from '@/utils/adbManager.js';
 import { AdbScrcpyClient, AdbScrcpyOptionsLatest } from '@yume-chan/adb-scrcpy';
 import {
     ScrcpyVideoCodecId,
@@ -119,11 +119,12 @@ const useScrcpy = () => {
      * @param {boolean} directInjectOnly 是否仅通过 injectText 直接插入
      */
     const pasteTextToDevice = async (text, directInjectOnly = false) => {
-        if (!client || !client.controller || !text) return;
+        if (!text) return;
+        console.log('[pasteTextToDevice] Attempting to paste text:', text);
 
         let synced = false;
         // 1. 优先尝试 Scrcpy 协议设置设备系统剪贴板 (带 paste: true)
-        if (!directInjectOnly && typeof client.controller.setClipboard === 'function') {
+        if (!directInjectOnly && client?.controller && typeof client.controller.setClipboard === 'function') {
             try {
                 await client.controller.setClipboard({
                     sequence: 0n,
@@ -138,31 +139,42 @@ const useScrcpy = () => {
         }
 
         // 2. 模拟注入 Ctrl+V 硬件按键，触发焦点输入框粘贴
-        try {
-            await client.controller.injectKeyCode({
-                action: AndroidKeyEventAction.Down,
-                keyCode: AndroidKeyCode.KeyV,
-                repeat: 0,
-                metaState: AndroidKeyEventMeta.Ctrl,
-            });
-            await client.controller.injectKeyCode({
-                action: AndroidKeyEventAction.Up,
-                keyCode: AndroidKeyCode.KeyV,
-                repeat: 0,
-                metaState: AndroidKeyEventMeta.Ctrl,
-            });
-        } catch (err) {
-            console.warn('Ctrl+V simulation failed:', err);
+        if (client?.controller) {
+            try {
+                await client.controller.injectKeyCode({
+                    action: AndroidKeyEventAction.Down,
+                    keyCode: AndroidKeyCode.KeyV,
+                    repeat: 0,
+                    metaState: AndroidKeyEventMeta.Ctrl,
+                });
+                await client.controller.injectKeyCode({
+                    action: AndroidKeyEventAction.Up,
+                    keyCode: AndroidKeyCode.KeyV,
+                    repeat: 0,
+                    metaState: AndroidKeyEventMeta.Ctrl,
+                });
+            } catch (err) {
+                console.warn('Ctrl+V simulation failed:', err);
+            }
         }
 
-        // 3. 备用机制：若剪贴板设置未成功，直接使用 Scrcpy 字符流注入
-        if (!synced) {
+        // 3. 备用机制：使用 Scrcpy 字符流注入
+        if (!synced && client?.controller) {
             try {
                 await client.controller.injectText(text);
                 console.log('Text injected directly via client.controller.injectText');
             } catch (err) {
                 console.error('injectText also failed:', err);
             }
+        }
+
+        // 4. ADB Shell input text 强力兜底 (直接通过 ADB 命令行输入到当前焦点输入框)
+        try {
+            const escaped = text.replace(/([\\"'`$!*#&|;<>\s()])/g, '\\$1');
+            await executeCommand(`input text ${escaped}`);
+            console.log('Text sent via adb shell input text');
+        } catch (err) {
+            console.warn('adb shell input text failed:', err);
         }
     };
 
@@ -289,6 +301,8 @@ const useScrcpy = () => {
             if (e.getModifierState && e.getModifierState('CapsLock')) metaState |= AndroidKeyEventMeta.CapsLock;
             if (e.getModifierState && e.getModifierState('NumLock')) metaState |= AndroidKeyEventMeta.NumLock;
 
+            console.log('[handleKeyEvent] keycode:', finalKeyCode, action, 'key:', key);
+
             try {
                 await client.controller.injectKeyCode({
                     action,
@@ -298,6 +312,13 @@ const useScrcpy = () => {
                 });
             } catch (err) {
                 console.error('injectKeyCode failed:', err);
+            }
+
+            // 对于在 keydown 时的单字符按键（英文、数字、符号、空格），同时触发 injectText 确保文本输入框能收到字符
+            if (e.type === 'keydown' && !e.ctrlKey && !e.altKey && !e.metaKey && key && key.length === 1) {
+                try {
+                    await client.controller.injectText(key);
+                } catch (err) {}
             }
             return;
         }
@@ -887,16 +908,21 @@ const useScrcpy = () => {
             action = AndroidKeyEventAction.Down;
         }
 
-        // If 'code' is provided (from a virtual button), use it.
-        // Otherwise, get the code from the physical keyboard event.
-        const finalKeyCode = code || AndroidKeyCode[e.code];
+        // If 'code' is provided as a number, use directly; if string name, lookup in AndroidKeyCode
+        const finalKeyCode = typeof code === 'number'
+            ? code
+            : (AndroidKeyCode[code] || (e && AndroidKeyCode[e.code]));
+
         if (!finalKeyCode) {
+            console.warn('[handleKeyCode] Unknown keycode:', code, e?.code);
             return;
         }
 
         if (e && e.defaultPrevented) {
             return;
         }
+
+        console.log('[handleKeyCode] injecting keycode:', finalKeyCode, action);
 
         // Send the key-down event
         await client.controller?.injectKeyCode({
@@ -914,6 +940,11 @@ const useScrcpy = () => {
                 repeat: 0,
                 metaState: 0,
             });
+
+            // Also fallback via ADB shell input keyevent for guaranteed reliability
+            try {
+                await executeCommand(`input keyevent ${finalKeyCode}`);
+            } catch (err) {}
         }
     };
 
