@@ -21,23 +21,13 @@
           <el-icon :size="16"><Menu /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="isFullscreen ? 'Exit Fullscreen (Alt+F)' : 'Fullscreen (Alt+F)'" placement="top">
-        <el-button @click="handleToggleFullscreen" class="fullscreen-btn">
-          <el-icon :size="16"><FullScreen /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="fitModeTooltip" placement="top" v-if="isFullscreen">
-        <el-button @click="handleToggleFitMode" class="fit-mode-btn">
-          <el-icon :size="16"><ScaleToOriginal /></el-icon>
-        </el-button>
-      </el-tooltip>
     </div>
   </div>
 </template>
 
 <script setup>
 import { 
-  Menu, CopyDocument, House, Back, FullScreen, ScaleToOriginal
+  Menu, CopyDocument, House, Back
 } from "@element-plus/icons-vue";
 import { computed } from 'vue';
 
@@ -50,22 +40,6 @@ const props = defineProps({
   isFullscreen: {
     type: Boolean,
     default: false
-  },
-  fitMode: {
-    type: String,
-    default: 'fill'
-  }
-});
-
-const emit = defineEmits(['toggle-fullscreen', 'toggle-fit-mode']);
-
-const fitModeTooltip = computed(() => {
-  if (props.fitMode === 'fill') {
-    return 'Aspect Ratio: Stretch to Fill (No black bars) - Click to toggle (Alt+S)';
-  } else if (props.fitMode === 'cover') {
-    return 'Aspect Ratio: Zoom to Fill (Proportional) - Click to toggle (Alt+S)';
-  } else {
-    return 'Aspect Ratio: Original (Black bars) - Click to toggle (Alt+S)';
   }
 });
 
@@ -87,14 +61,6 @@ const handlePress = (key) => {
   if (props.pressKey) {
     props.pressKey(null, key);
   }
-};
-
-const handleToggleFullscreen = () => {
-  emit('toggle-fullscreen');
-};
-
-const handleToggleFitMode = () => {
-  emit('toggle-fit-mode');
 };
 </script>
 

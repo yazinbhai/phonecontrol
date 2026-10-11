@@ -1,10 +1,10 @@
 <template>
   <div class="scrcpy-container">
-    <div :class="['content-wrapper', `fit-${fitMode}`]" ref="fullScreenContainer">
+    <div class="content-wrapper" ref="fullScreenContainer">
       <RenderContainer
         ref="renderRef"
         :classes="classes"
-        :container-style="currentContainerStyle"
+        :container-style="containerStyle"
         @pointerdown="handlePointerDown"
         @pointermove="handlePointerMove"
         @pointerup="handlePointerUp"
@@ -12,7 +12,6 @@
         @pointerleave="handlePointerLeave"
         @contextmenu="handleContextMenu"
         @wheel="handleWheel"
-        @dblclick="toggleFullscreen"
       />
 
       <!-- Floating Coordinate Window -->
@@ -65,11 +64,8 @@
       <div class="fullscreen-bottom-controls" v-if="isFullscreen && !isLoading && !hasError">
         <DeviceOperateButton
           :press-key="pressKey"
-          :container-width="420"
+          :container-width="300"
           :is-fullscreen="isFullscreen"
-          :fit-mode="fitMode"
-          @toggle-fullscreen="toggleFullscreen"
-          @toggle-fit-mode="toggleFitMode"
           class="mt-1"
         />
       </div>
@@ -93,9 +89,6 @@
         :press-key="pressKey"
         :container-width="calcWidthAndHeight[0]"
         :is-fullscreen="isFullscreen"
-        :fit-mode="fitMode"
-        @toggle-fullscreen="toggleFullscreen"
-        @toggle-fit-mode="toggleFitMode"
         class="mt-1"
       />
       <!-- Sidebar Expand Button -->
@@ -137,15 +130,15 @@ const fullScreenContainer = ref(null);
 const isFullscreen = ref(false);
 // Sidebar visibility state - visible by default
 const isSidebarVisible = ref(true);
-// 添加坐标跟踪状态
+// Coordinate tracking
 const isCoordinateTrackingActive = ref(false);
-const isMouseInScreen = ref(false); // 鼠标是否在屏幕内
+const isMouseInScreen = ref(false);
 const currentMouseX = ref(0);
 const currentMouseY = ref(0);
 const currentAbsoluteX = ref(0);
 const currentAbsoluteY = ref(0);
 
-// 获取所有必要的变量和函数
+// Destructure from useScrcpy
 const {
   width,
   height,
@@ -166,44 +159,16 @@ const {
   handleWheel,
   scrcpyStart,
   destroyClient,
-  // 新增状态
   connectionStatus,
   connectionError,
-  // 新增变量
   client,
   rotation,
-  // 设备分辨率
   deviceRealWidth: getDeviceRealWidth,
   deviceRealHeight: getDeviceRealHeight,
-  // 坐标转换函数
   clientPositionToDevicePosition
 } = useScrcpy();
 
-// Dynamic container style based on fullscreen mode
-const currentContainerStyle = computed(() => {
-  if (isFullscreen.value) {
-    return {
-      width: '100vw',
-      height: '100vh',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      margin: '0',
-      padding: '0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#000000',
-      borderRadius: '0',
-      overflow: 'hidden',
-      transform: 'none',
-      boxShadow: 'none',
-      border: 'none',
-    };
-  }
-  return containerStyle.value;
-});
-
-// 包装指针按下处理函数，当点击屏幕时让网页输入框失焦，以便键盘输入发送到设备
+// Pointer down handler to blur web inputs when clicking screen
 const handlePointerDown = async (event) => {
   if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
     document.activeElement.blur?.();
@@ -211,47 +176,37 @@ const handlePointerDown = async (event) => {
   await originalHandlePointerDown(event);
 };
 
-// 自定义鼠标移动处理函数，包装原始函数并添加坐标跟踪功能
+// Pointer move with coordinate tracking
 const handlePointerMove = async (event) => {
-  // 更新鼠标位置
   currentMouseX.value = event.clientX;
   currentMouseY.value = event.clientY;
 
-  // 如果坐标跟踪模式激活，计算设备坐标
   if (isCoordinateTrackingActive.value) {
-    // 获取渲染容器的位置和尺寸
     const container = renderRef.value?.renderContainer;
     if (container) {
       const rect = container.getBoundingClientRect();
-
-      // 计算相对于容器的位置
       const relX = event.clientX - rect.left;
       const relY = event.clientY - rect.top;
 
-      // 检查鼠标是否在容器范围内
       const isInBounds = relX >= 0 && relX <= rect.width && relY >= 0 && relY <= rect.height;
       isMouseInScreen.value = isInBounds;
 
       if (isInBounds) {
-        // 计算相对于设备的坐标（0-1范围）
         let pointerViewX = relX / rect.width;
         let pointerViewY = relY / rect.height;
 
-        // 根据旋转调整坐标
         let adjustedX = pointerViewX;
         let adjustedY = pointerViewY;
 
-        // 处理旋转（与 adjustPositionForRotation 保持一致）
-        if (rotation === 1) { // 90度
+        if (rotation === 1) {
           [adjustedX, adjustedY] = [adjustedY, 1 - adjustedX];
-        } else if (rotation === 2) { // 180度
+        } else if (rotation === 2) {
           adjustedX = 1 - adjustedX;
           adjustedY = 1 - adjustedY;
-        } else if (rotation === 3) { // 270度
+        } else if (rotation === 3) {
           [adjustedX, adjustedY] = [1 - adjustedY, adjustedX];
         }
 
-        // 计算设备上的绝对坐标 - 使用设备真实分辨率
         const deviceWidth = getDeviceRealWidth();
         const deviceHeight = getDeviceRealHeight();
         currentAbsoluteX.value = Math.round(adjustedX * deviceWidth);
@@ -260,51 +215,46 @@ const handlePointerMove = async (event) => {
     }
   }
 
-  // 调用原始的处理函数
   await originalHandlePointerMove(event);
 };
 
-// 自定义鼠标离开处理函数
 const handlePointerLeave = async (event) => {
-  // 如果坐标跟踪模式激活，隐藏坐标窗口
-  if (isCoordinateTrackingActive.value) {
-    // 设置鼠标不在屏幕内，这会隐藏坐标窗口
-    isMouseInScreen.value = false;
-  }
-
-  // 调用原始的处理函数
+  isMouseInScreen.value = false;
   await originalHandlePointerLeave(event);
 };
 
-// 自定义右键事件处理函数
 const handleContextMenu = async (event) => {
-  // 如果坐标跟踪模式激活，则复制坐标而不是调用原始处理函数
   if (isCoordinateTrackingActive.value) {
+    copyCoordinatesToClipboard();
     event.preventDefault();
-    event.stopPropagation();
-
-    // 复制相对坐标
-    await copyCoordinatesToClipboard();
-  } else {
-    // 否则调用原始的右键处理函数
-    await originalHandleContextMenu(event);
+    return;
   }
+  await originalHandleContextMenu(event);
 };
 
-// 复制坐标到剪贴板的函数
+const toggleFocus = () => {
+  isCoordinateTrackingActive.value = !isCoordinateTrackingActive.value;
+  if (!isCoordinateTrackingActive.value) {
+    isMouseInScreen.value = false;
+  }
+  ElMessage({
+    message: isCoordinateTrackingActive.value 
+      ? '🎯 Coordinate tracking enabled. Right click to copy coordinates.' 
+      : 'Coordinate tracking disabled',
+    type: isCoordinateTrackingActive.value ? 'success' : 'info',
+    duration: 3000
+  });
+};
+
 const copyCoordinatesToClipboard = async () => {
   try {
     const deviceWidth = getDeviceRealWidth();
     const deviceHeight = getDeviceRealHeight();
-
-    // 计算相对坐标
     const relativeX = deviceWidth > 0 ? currentAbsoluteX.value / deviceWidth : 0;
     const relativeY = deviceHeight > 0 ? currentAbsoluteY.value / deviceHeight : 0;
-
     const relativeCoords = `${relativeX.toFixed(3)}, ${relativeY.toFixed(3)}`;
 
     await navigator.clipboard.writeText(relativeCoords);
-
     ElMessage.success({
       message: `✅ Coordinates copied to clipboard: (${relativeCoords})`,
       duration: 3000,
@@ -312,52 +262,23 @@ const copyCoordinatesToClipboard = async () => {
     });
   } catch (error) {
     console.error('Failed to copy to clipboard:', error);
-
-    // Fallback copy method
-    try {
-      const deviceWidth = getDeviceRealWidth();
-      const deviceHeight = getDeviceRealHeight();
-      const relativeX = deviceWidth > 0 ? currentAbsoluteX.value / deviceWidth : 0;
-      const relativeY = deviceHeight > 0 ? currentAbsoluteY.value / deviceHeight : 0;
-      const relativeCoords = `${relativeX.toFixed(3)}, ${relativeY.toFixed(3)}`;
-
-      const textArea = document.createElement('textarea');
-      textArea.value = relativeCoords;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-
-      ElMessage.success({
-        message: `✅ Coordinates copied to clipboard: (${relativeCoords})`,
-        duration: 3000,
-        showClose: true
-      });
-    } catch (fallbackError) {
-      ElMessage.error({
-        message: '❌ Failed to copy coordinates to clipboard',
-        duration: 3000,
-        showClose: true
-      });
-    }
   }
 };
 
 const calcWidthAndHeight = computed(() => {
   const [calcWidth, calcHeight] = swapWidthHeight(width.value, height.value)
   return [calcWidth, calcHeight]
-})
+});
 
 const pressKey = (event, type) => {
-  console.log('Event:', event);  // 原生事件
-  console.log('Type:', type, AndroidKeyCode[type]);     // 自定义参数
+  console.log('Event:', event);
+  console.log('Type:', type, AndroidKeyCode[type]);
   handleKeyEvent(event, AndroidKeyCode[type]);
 };
 
-// 切换侧边栏显示状态
 const toggleSidebar = () => {
   isSidebarVisible.value = !isSidebarVisible.value;
-  console.log('切换侧边栏显示状态:', isSidebarVisible.value);
+  console.log('Toggle sidebar:', isSidebarVisible.value);
 };
 
 // Toggle Fullscreen mode
@@ -377,39 +298,6 @@ const toggleFullscreen = () => {
   }
 };
 
-// Screen Fit Mode: 'fill' (stretch - removes black bars), 'cover' (zoom - removes black bars), 'contain' (original ratio)
-const fitMode = ref('fill');
-
-const toggleFitMode = () => {
-  if (fitMode.value === 'fill') {
-    fitMode.value = 'cover';
-    ElMessage.info({
-      message: '📺 Aspect Ratio: Zoom to Fill (Cover - no black bars)',
-      duration: 2500,
-      showClose: true
-    });
-  } else if (fitMode.value === 'cover') {
-    fitMode.value = 'contain';
-    ElMessage.info({
-      message: '📺 Aspect Ratio: Original (Contain - with black bars)',
-      duration: 2500,
-      showClose: true
-    });
-  } else {
-    fitMode.value = 'fill';
-    ElMessage.success({
-      message: '📺 Aspect Ratio: Stretch to Fill (No black bars at top/bottom)',
-      duration: 2500,
-      showClose: true
-    });
-  }
-  
-  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
-  if (canvas && isFullscreen.value) {
-    canvas.style.objectFit = fitMode.value;
-  }
-};
-
 // Update sidebar position in fullscreen mode
 const updateSidebarPosition = () => {
   const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
@@ -419,7 +307,6 @@ const updateSidebarPosition = () => {
     const canvasRect = canvas.getBoundingClientRect();
     const rightPosition = canvasRect.right + 16;
     
-    // Only adjust left position if it stays inside the viewport
     if (rightPosition + 60 < window.innerWidth) {
       sidebar.style.left = `${rightPosition}px`;
       sidebar.style.right = 'auto';
@@ -431,8 +318,6 @@ const updateSidebarPosition = () => {
 };
 
 const toggleVisibility = () => {
-  console.log('切换可见性');
-  // 实现可见性切换功能
   if (renderRef.value && renderRef.value.renderContainer) {
     const container = renderRef.value.renderContainer;
     if (container.style.visibility === 'hidden') {
@@ -444,13 +329,9 @@ const toggleVisibility = () => {
 };
 
 const toggleRotate = () => {
-  console.log('旋转屏幕');
-  // 实现屏幕旋转功能
   if (client) {
-    // 尝试获取渲染器元素
     const renderer = document.querySelector('.video');
     if (renderer) {
-      // 通过样式修改实现旋转效果
       const currentTransform = renderer.style.transform || '';
       if (currentTransform.includes('rotate(90deg)')) {
         renderer.style.transform = currentTransform.replace('rotate(90deg)', 'rotate(180deg)');
@@ -459,34 +340,23 @@ const toggleRotate = () => {
       } else if (currentTransform.includes('rotate(270deg)')) {
         renderer.style.transform = currentTransform.replace('rotate(270deg)', '');
       } else {
-        renderer.style.transform = currentTransform + ' rotate(90deg)';
+        renderer.style.transform = (currentTransform + ' rotate(90deg)').trim();
       }
     }
   }
 };
 
-const toggleFocus = () => {
-  console.log('切换坐标跟踪模式');
-  isCoordinateTrackingActive.value = !isCoordinateTrackingActive.value;
-
-  if (isCoordinateTrackingActive.value) {
-    console.log('坐标跟踪模式已启用');
-  } else {
-    console.log('坐标跟踪模式已禁用');
-  }
-};
-
 const toggleNotifications = async () => {
-  console.log('切换通知');
-  // 实现通知切换功能 - 打开/关闭安卓通知栏
   if (client && client.controller) {
     try {
-      // 发送下拉通知栏的手势
+      const deviceWidth = getDeviceRealWidth();
+      const deviceHeight = getDeviceRealHeight();
+
       await client.controller.injectSwipe({
         pointerId: ScrcpyPointerId.MOUSE,
         action: AndroidMotionEventAction.DOWN,
         buttons: AndroidMotionEventButton.Primary,
-        position: { x: deviceRealWidth / 2, y: 10 },
+        position: { x: deviceWidth / 2, y: 10 },
         pressure: 1,
       });
       
@@ -496,7 +366,7 @@ const toggleNotifications = async () => {
         pointerId: ScrcpyPointerId.MOUSE,
         action: AndroidMotionEventAction.MOVE,
         buttons: AndroidMotionEventButton.Primary,
-        position: { x: deviceRealWidth / 2, y: deviceRealHeight / 4 },
+        position: { x: deviceWidth / 2, y: deviceHeight / 4 },
         pressure: 1,
       });
       
@@ -506,19 +376,17 @@ const toggleNotifications = async () => {
         pointerId: ScrcpyPointerId.MOUSE,
         action: AndroidMotionEventAction.UP,
         buttons: AndroidMotionEventButton.Primary,
-        position: { x: deviceRealWidth / 2, y: deviceRealHeight / 4 },
+        position: { x: deviceWidth / 2, y: deviceHeight / 4 },
         pressure: 0,
       });
     } catch (error) {
-      console.error('通知栏操作失败:', error);
+      console.error('Notifications action error:', error);
     }
   }
 };
 
-// 计算是否有错误
 const hasError = computed(() => connectionStatus.value === 'error');
 
-// Reconnect
 const retryConnection = async () => {
   isLoading.value = true;
   loadingMessage.value = 'Reconnecting...';
@@ -534,14 +402,12 @@ const retryConnection = async () => {
   }
 };
 
-// Listen for window changes
 watch([windowWidth, windowHeight], ([newWidth, newHeight]) => {
   if (width.value !== 0 || height.value !== 0) {
-    changeStyle()
+    changeStyle();
   }
 });
 
-// Listen for screen render state
 watch([width, height], ([newWidth, newHeight]) => {
   if (newWidth > 0 && newHeight > 0) {
     setTimeout(() => {
@@ -555,13 +421,9 @@ watch([width, height], ([newWidth, newHeight]) => {
   }
 });
 
-// 监听连接状态
 watch(connectionStatus, (newStatus) => {
-  console.log('连接状态变化:', newStatus);
-  
   switch (newStatus) {
     case 'idle':
-      // 初始状态，不做特殊处理
       break;
     case 'connecting':
       isLoading.value = true;
@@ -582,60 +444,29 @@ watch(connectionStatus, (newStatus) => {
   }
 });
 
-
 // Handle Fullscreen state changes
 const handleFullscreenChange = () => {
   isFullscreen.value = !!document.fullscreenElement;
-  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
   
-  if (isFullscreen.value) {
-    if (canvas) {
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.maxWidth = '100vw';
-      canvas.style.maxHeight = '100vh';
-      canvas.style.objectFit = fitMode.value;
-      canvas.style.borderRadius = '0px';
-      canvas.style.boxShadow = 'none';
-      canvas.style.border = 'none';
-      canvas.style.margin = '0 auto';
-      canvas.style.display = 'block';
-    }
-    setTimeout(() => {
-      updateSidebarPosition();
-    }, 150);
-  } else {
-    // Restore normal styles when exiting fullscreen
+  if (!isFullscreen.value) {
+    const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
     if (canvas) {
       canvas.style.width = '';
       canvas.style.height = '';
-      canvas.style.maxWidth = '';
       canvas.style.maxHeight = '';
-      canvas.style.objectFit = '';
-      canvas.style.borderRadius = '';
-      canvas.style.boxShadow = '';
-      canvas.style.border = '';
       canvas.style.margin = '';
+      changeStyle();
     }
-    changeStyle(); // Restore calculated normal style
     
     const sidebar = document.querySelector('.fullscreen-side-controls');
     if (sidebar) {
       sidebar.style.left = '';
       sidebar.style.right = '';
     }
-  }
-};
-
-// Global keyboard shortcut ('Alt+F' for fullscreen, 'Alt+S' for screen fit mode)
-const handleGlobalKeydown = (e) => {
-  if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-  if (e.altKey && (e.key === 'f' || e.key === 'F')) {
-    e.preventDefault();
-    toggleFullscreen();
-  } else if (e.altKey && (e.key === 's' || e.key === 'S') && isFullscreen.value) {
-    e.preventDefault();
-    toggleFitMode();
+  } else {
+    setTimeout(() => {
+      updateSidebarPosition();
+    }, 200);
   }
 };
 
@@ -648,9 +479,6 @@ onMounted(async () => {
 
   // Listen for fullscreen state changes
   document.addEventListener('fullscreenchange', handleFullscreenChange);
-  
-  // Listen for Alt+F / Alt+S keyboard shortcuts
-  window.addEventListener('keydown', handleGlobalKeydown);
   
   // Window resize listener
   window.addEventListener('resize', () => {
@@ -666,34 +494,17 @@ onBeforeUnmount(async () => {
   console.log("Destroying scrcpy");
   try {
     openKeyInput('close');
-    window.removeEventListener('keydown', handleGlobalKeydown);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     window.removeEventListener('resize', updateSidebarPosition);
     
-    // 等待一小段时间，确保所有事件处理完成
     await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // 调用销毁函数
     await destroyClient();
-    console.log("scrcpy 资源已清理完成");
+    console.log("scrcpy resources cleaned up");
   } catch (error) {
-    console.error("销毁 scrcpy 资源时出错:", error);
-    // 即使出错，也确保设置为 null 以便垃圾回收
-    try {
-      // 强制清理资源的最后尝试
-      if (renderRef.value && renderRef.value.renderContainer) {
-        const container = renderRef.value.renderContainer;
-        while (container.firstChild) {
-          container.removeChild(container.firstChild);
-        }
-      }
-    } catch (e) {
-      console.warn("清理渲染容器时出错:", e);
-    }
+    console.error("Error destroying scrcpy:", error);
   }
 });
 
-// 暴露方法供父组件调用
 defineExpose({
   pressKey,
   openKeyInput
@@ -764,7 +575,7 @@ defineExpose({
 
 .sidebar-expand-button {
   position: absolute;
-  right: -10px; /* 移动到容器外部右侧 */
+  right: -10px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 90;
@@ -800,7 +611,6 @@ defineExpose({
   }
 }
 
-/* 侧边栏滑动动画 */
 .sidebar-slide-enter-active,
 .sidebar-slide-leave-active {
   transition: all 0.3s ease;
@@ -892,116 +702,77 @@ defineExpose({
   }
 }
 
-/* Non-fullscreen styling for video container */
-.content-wrapper:not(:fullscreen) :deep(.video) {
+:deep(.video) {
   border-radius: 20px !important;
 }
 
-/* Fullscreen mode container styling */
-.content-wrapper:fullscreen,
-.content-wrapper:-webkit-full-screen,
-.content-wrapper:-moz-full-screen {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: 100vw !important;
-  max-height: 100vh !important;
-  background-color: #000000 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
+/* Fullscreen mode original styles */
+:fullscreen .content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #303133;
 }
 
-/* Fullscreen video and canvas: edge-to-edge true fullscreen */
-.content-wrapper:fullscreen :deep(.video),
-.content-wrapper:fullscreen :deep(canvas),
-.content-wrapper:-webkit-full-screen :deep(.video),
-.content-wrapper:-webkit-full-screen :deep(canvas),
-:fullscreen :deep(.video),
-:fullscreen :deep(canvas) {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100vw !important;
-  max-height: 100vh !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border: none !important;
-  margin: 0 auto !important;
-  display: block !important;
-  transform: none !important;
+:fullscreen .video {
+  max-height: 95vh;
+  max-width: 95vw;
+  border-radius: 20px !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  margin: -90px auto 0;
 }
 
-/* Default / Fill mode: Stretch to eliminate top & bottom black bars */
-.content-wrapper.fit-fill:fullscreen :deep(.video),
-.content-wrapper.fit-fill:fullscreen :deep(canvas),
-.content-wrapper.fit-fill:-webkit-full-screen :deep(.video),
-.content-wrapper.fit-fill:-webkit-full-screen :deep(canvas) {
-  object-fit: fill !important;
-}
-
-/* Cover mode: Zoom to fill top & bottom without stretching */
-.content-wrapper.fit-cover:fullscreen :deep(.video),
-.content-wrapper.fit-cover:fullscreen :deep(canvas),
-.content-wrapper.fit-cover:-webkit-full-screen :deep(.video),
-.content-wrapper.fit-cover:-webkit-full-screen :deep(canvas) {
-  object-fit: cover !important;
-}
-
-/* Contain mode: Original ratio with top & bottom black bars */
-.content-wrapper.fit-contain:fullscreen :deep(.video),
-.content-wrapper.fit-contain:fullscreen :deep(canvas),
-.content-wrapper.fit-contain:-webkit-full-screen :deep(.video),
-.content-wrapper.fit-contain:-webkit-full-screen :deep(canvas) {
-  object-fit: contain !important;
-}
-
-/* Floating bottom controls in fullscreen mode */
 .fullscreen-bottom-controls {
   position: fixed;
-  bottom: 24px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
-  width: 420px;
-  background-color: rgba(30, 30, 30, 0.75);
+  z-index: 100;
+  width: 320px;
+  background-color: rgba(40, 40, 40, 0.95);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  padding: 6px 12px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  opacity: 0.25;
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 8px 10px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(80, 80, 80, 0.5);
 }
 
-.fullscreen-bottom-controls:hover {
-  opacity: 1 !important;
-  transform: translateX(-50%) translateY(-3px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+:fullscreen .fullscreen-bottom-controls {
+  opacity: 0.95;
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Floating side controls in fullscreen mode */
+:fullscreen .fullscreen-bottom-controls:hover {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-5px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+}
+
 .fullscreen-side-controls {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 9999;
-  background-color: rgba(30, 30, 30, 0.75);
+  z-index: 100;
+  background-color: rgba(40, 40, 40, 0.95);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  padding: 10px 6px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  opacity: 0.25;
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 10px 5px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(80, 80, 80, 0.5);
 }
 
-.fullscreen-side-controls:hover {
-  opacity: 1 !important;
-  transform: translateY(-50%) translateX(-3px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+:fullscreen .fullscreen-side-controls {
+  opacity: 0.95;
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+:fullscreen .fullscreen-side-controls:hover {
+  opacity: 1;
+  transform: translateY(-50%) translateX(-5px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
 }
 </style>
