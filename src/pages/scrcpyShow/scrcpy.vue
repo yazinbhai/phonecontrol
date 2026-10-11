@@ -351,9 +351,8 @@ const calcWidthAndHeight = computed(() => {
 
 const pressKey = (event, type) => {
   console.log('Event:', event);
-  const code = typeof type === 'number' ? type : (AndroidKeyCode[type] || type);
-  console.log('Type:', type, 'Resolved code:', code);
-  handleKeyEvent(event, code);
+  console.log('Type:', type, AndroidKeyCode[type]);
+  handleKeyEvent(event, AndroidKeyCode[type]);
 };
 
 const toggleSidebar = () => {
