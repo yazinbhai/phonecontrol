@@ -158,7 +158,7 @@ const {
   openKeyInput,
   swapWidthHeight,
   handleKeyEvent,
-  handlePointerDown,
+  handlePointerDown: originalHandlePointerDown,
   handlePointerMove: originalHandlePointerMove,
   handlePointerUp,
   handlePointerLeave: originalHandlePointerLeave,
@@ -202,6 +202,14 @@ const currentContainerStyle = computed(() => {
   }
   return containerStyle.value;
 });
+
+// 包装指针按下处理函数，当点击屏幕时让网页输入框失焦，以便键盘输入发送到设备
+const handlePointerDown = async (event) => {
+  if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+    document.activeElement.blur?.();
+  }
+  await originalHandlePointerDown(event);
+};
 
 // 自定义鼠标移动处理函数，包装原始函数并添加坐标跟踪功能
 const handlePointerMove = async (event) => {
@@ -619,13 +627,13 @@ const handleFullscreenChange = () => {
   }
 };
 
-// Global keyboard shortcut ('F' for fullscreen, 'S' for screen fit mode)
+// Global keyboard shortcut ('Alt+F' for fullscreen, 'Alt+S' for screen fit mode)
 const handleGlobalKeydown = (e) => {
   if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-  if (e.key === 'f' || e.key === 'F') {
+  if (e.altKey && (e.key === 'f' || e.key === 'F')) {
     e.preventDefault();
     toggleFullscreen();
-  } else if ((e.key === 's' || e.key === 'S') && isFullscreen.value) {
+  } else if (e.altKey && (e.key === 's' || e.key === 'S') && isFullscreen.value) {
     e.preventDefault();
     toggleFitMode();
   }
@@ -635,10 +643,13 @@ onMounted(async () => {
   loadingMessage.value = 'Initializing connection...';
   await scrcpyStart(renderRef.value);
   
+  // Enable keyboard and clipboard listeners
+  openKeyInput('open');
+
   // Listen for fullscreen state changes
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   
-  // Listen for 'F' keyboard shortcut
+  // Listen for Alt+F / Alt+S keyboard shortcuts
   window.addEventListener('keydown', handleGlobalKeydown);
   
   // Window resize listener
@@ -654,8 +665,7 @@ onMounted(async () => {
 onBeforeUnmount(async () => {
   console.log("Destroying scrcpy");
   try {
-    window.removeEventListener('keydown', handleKeyEvent);
-    window.removeEventListener('keyup', handleKeyEvent);
+    openKeyInput('close');
     window.removeEventListener('keydown', handleGlobalKeydown);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     window.removeEventListener('resize', updateSidebarPosition);

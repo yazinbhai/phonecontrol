@@ -21,7 +21,7 @@
           <el-icon :size="16"><Menu /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'" placement="top">
+      <el-tooltip effect="dark" :content="isFullscreen ? 'Exit Fullscreen (Alt+F)' : 'Fullscreen (Alt+F)'" placement="top">
         <el-button @click="handleToggleFullscreen" class="fullscreen-btn">
           <el-icon :size="16"><FullScreen /></el-icon>
         </el-button>
@@ -61,11 +61,11 @@ const emit = defineEmits(['toggle-fullscreen', 'toggle-fit-mode']);
 
 const fitModeTooltip = computed(() => {
   if (props.fitMode === 'fill') {
-    return 'Aspect Ratio: Stretch to Fill (No black bars) - Click to toggle (S)';
+    return 'Aspect Ratio: Stretch to Fill (No black bars) - Click to toggle (Alt+S)';
   } else if (props.fitMode === 'cover') {
-    return 'Aspect Ratio: Zoom to Fill (Proportional) - Click to toggle (S)';
+    return 'Aspect Ratio: Zoom to Fill (Proportional) - Click to toggle (Alt+S)';
   } else {
-    return 'Aspect Ratio: Original (Black bars) - Click to toggle (S)';
+    return 'Aspect Ratio: Original (Black bars) - Click to toggle (Alt+S)';
   }
 });
 
