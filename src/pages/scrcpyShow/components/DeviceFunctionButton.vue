@@ -39,6 +39,13 @@
           </el-icon>
         </el-tooltip>
       </div>
+      <div class="icon-container" @click="handleToggleFitMode">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Screen Ratio (Fill / 20:9 / 11.6\')'" placement="left">
+          <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
+            <ScaleToOriginal/>
+          </el-icon>
+        </el-tooltip>
+      </div>
       <div class="icon-container" @click="handleNotifications">
         <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Notifications'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
@@ -90,7 +97,8 @@ import {
   RefreshRight, 
   Bell, 
   Aim,
-  Picture
+  Picture,
+  ScaleToOriginal
 } from "@element-plus/icons-vue";
 import { ElMessage } from 'element-plus';
 import { getAdbInstance } from '@/utils/adbManager.js';
@@ -104,7 +112,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggleFullscreen', 'toggleVisibility', 'toggleRotate', 'toggleFocus', 'toggleNotifications']);
+const emit = defineEmits(['toggleFullscreen', 'toggleVisibility', 'toggleRotate', 'toggleFocus', 'toggleNotifications', 'toggleFitMode']);
 // 移除未使用的 ref 引入
 // (此组件的全屏状态完全由父组件通过 props.isFullscreen 控制)
 
@@ -197,6 +205,10 @@ const handleRecord = (e) => {
 const handleFullscreen = () => {
   // 全屏切换逻辑由父组件处理，这里仅向外发送事件
   emit('toggleFullscreen');
+};
+
+const handleToggleFitMode = () => {
+  emit('toggleFitMode');
 };
 
 // 处理可见性按钮点击

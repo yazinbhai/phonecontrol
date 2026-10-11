@@ -1,6 +1,6 @@
 <template>
   <div class="scrcpy-container">
-    <div :class="['content-wrapper', `fit-${fitMode}`]" ref="fullScreenContainer">
+    <div :class="['content-wrapper', `fit-${fitClass}`]" ref="fullScreenContainer">
       <RenderContainer
         ref="renderRef"
         :classes="classes"
@@ -45,6 +45,7 @@
           @toggle-rotate="toggleRotate"
           @toggle-focus="toggleFocus"
           @toggle-notifications="toggleNotifications"
+          @toggle-fit-mode="toggleFitMode"
         />
         </div>
       </transition>
@@ -59,17 +60,20 @@
           @toggle-rotate="toggleRotate"
           @toggle-focus="toggleFocus"
           @toggle-notifications="toggleNotifications"
+          @toggle-fit-mode="toggleFitMode"
         />
       </div>
       <!-- Fullscreen Bottom Controls -->
       <div class="fullscreen-bottom-controls" v-if="isFullscreen && !isLoading && !hasError">
         <DeviceOperateButton
           :press-key="pressKey"
-          :container-width="420"
+          :container-width="440"
           :is-fullscreen="isFullscreen"
           :fit-mode="fitMode"
           @toggle-fullscreen="toggleFullscreen"
+          @set-fit-mode="setFitMode"
           @toggle-fit-mode="toggleFitMode"
+          @apply-adb-mode="handleAdbMode"
           class="mt-1"
         />
       </div>
@@ -95,7 +99,9 @@
         :is-fullscreen="isFullscreen"
         :fit-mode="fitMode"
         @toggle-fullscreen="toggleFullscreen"
+        @set-fit-mode="setFitMode"
         @toggle-fit-mode="toggleFitMode"
+        @apply-adb-mode="handleAdbMode"
         class="mt-1"
       />
       <!-- Sidebar Expand Button -->
@@ -128,6 +134,7 @@ import {
 } from "@yume-chan/scrcpy";
 import { ArrowUp, ArrowDown } from "@element-plus/icons-vue";
 import { ElMessage } from 'element-plus';
+import { executeCommand } from '@/utils/adbManager.js';
 
 const renderRef = ref();
 const isLoading = ref(true);
@@ -369,36 +376,106 @@ const toggleFullscreen = () => {
   }
 };
 
-// Screen Fit Mode: 'fill' (stretch - removes black bars), 'cover' (zoom - removes black bars), 'contain' (original ratio)
+// Screen Mode: 'fill' (stretch - removes black bars), '20:9' (native phone ratio), '11.6' (16:9 widescreen)
 const fitMode = ref('fill');
 
-const toggleFitMode = () => {
-  if (fitMode.value === 'fill') {
-    fitMode.value = 'cover';
+const fitClass = computed(() => {
+  if (fitMode.value === '20:9') return '20-9';
+  if (fitMode.value === '11.6') return '11-6';
+  return 'fill';
+});
+
+const applyCanvasFitMode = (mode) => {
+  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
+  if (canvas && isFullscreen.value) {
+    if (mode === 'fill') {
+      canvas.style.objectFit = 'fill';
+      canvas.style.width = '100vw';
+      canvas.style.height = '100vh';
+      canvas.style.maxWidth = '100vw';
+      canvas.style.maxHeight = '100vh';
+      canvas.style.aspectRatio = '';
+    } else if (mode === '20:9') {
+      canvas.style.objectFit = 'contain';
+      canvas.style.width = 'auto';
+      canvas.style.height = 'auto';
+      canvas.style.maxWidth = '100vw';
+      canvas.style.maxHeight = '100vh';
+      canvas.style.aspectRatio = '';
+    } else if (mode === '11.6') {
+      canvas.style.objectFit = 'fill';
+      canvas.style.width = '100vw';
+      canvas.style.height = '100vh';
+      canvas.style.maxWidth = '100vw';
+      canvas.style.maxHeight = '100vh';
+      canvas.style.aspectRatio = '16 / 9';
+    }
+  }
+};
+
+const setFitMode = (mode) => {
+  fitMode.value = mode;
+  applyCanvasFitMode(mode);
+  
+  if (mode === '20:9') {
     ElMessage.info({
-      message: '📺 Aspect Ratio: Zoom to Fill (Cover - no black bars)',
+      message: '📱 Display Mode: 20:9 (Native Phone Ratio - 2400×1080)',
       duration: 2500,
       showClose: true
     });
-  } else if (fitMode.value === 'cover') {
-    fitMode.value = 'contain';
+  } else if (mode === '11.6') {
     ElMessage.info({
-      message: '📺 Aspect Ratio: Original (Contain - with black bars)',
+      message: '💻 Display Mode: 11.6" Screen (16:9 Widescreen Format)',
       duration: 2500,
       showClose: true
     });
   } else {
-    fitMode.value = 'fill';
     ElMessage.success({
-      message: '📺 Aspect Ratio: Stretch to Fill (No black bars at top/bottom)',
+      message: '🖥️ Display Mode: Fill (Edge-to-Edge - No Black Bars)',
       duration: 2500,
       showClose: true
     });
   }
-  
-  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
-  if (canvas && isFullscreen.value) {
-    canvas.style.objectFit = fitMode.value;
+};
+
+const toggleFitMode = () => {
+  if (fitMode.value === 'fill') {
+    setFitMode('20:9');
+  } else if (fitMode.value === '20:9') {
+    setFitMode('11.6');
+  } else {
+    setFitMode('fill');
+  }
+};
+
+const handleAdbMode = async (action) => {
+  try {
+    if (action === '11.6') {
+      const isLandscape = width.value > height.value;
+      const targetRes = isLandscape ? '1920x1080' : '1080x1920';
+      await executeCommand(`wm size ${targetRes}`);
+      ElMessage.success({
+        message: `💻 Phone resolution adapted for 11.6" screen (${targetRes})`,
+        duration: 3500,
+        showClose: true
+      });
+      setFitMode('11.6');
+    } else if (action === 'reset') {
+      await executeCommand('wm size reset');
+      ElMessage.success({
+        message: '🔄 Phone resolution reset to native 20:9 (2400×1080)',
+        duration: 3500,
+        showClose: true
+      });
+      setFitMode('20:9');
+    }
+  } catch (error) {
+    console.error('ADB Resolution command failed:', error);
+    ElMessage.error({
+      message: 'Failed to update phone resolution: ' + (error.message || 'Error'),
+      duration: 3000,
+      showClose: true
+    });
   }
 };
 
@@ -582,16 +659,14 @@ const handleFullscreenChange = () => {
   
   if (isFullscreen.value) {
     if (canvas) {
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
       canvas.style.maxWidth = '100vw';
       canvas.style.maxHeight = '100vh';
-      canvas.style.objectFit = fitMode.value;
       canvas.style.borderRadius = '0px';
       canvas.style.boxShadow = 'none';
       canvas.style.border = 'none';
-      canvas.style.margin = '0 auto';
+      canvas.style.margin = 'auto';
       canvas.style.display = 'block';
+      applyCanvasFitMode(fitMode.value);
     }
     setTimeout(() => {
       updateSidebarPosition();
@@ -923,28 +998,42 @@ defineExpose({
   transform: none !important;
 }
 
-/* Default / Fill mode: Stretch to eliminate top & bottom black bars */
+/* 1. Fill Mode: Stretch to eliminate top & bottom black bars */
 .content-wrapper.fit-fill:fullscreen :deep(.video),
 .content-wrapper.fit-fill:fullscreen :deep(canvas),
 .content-wrapper.fit-fill:-webkit-full-screen :deep(.video),
 .content-wrapper.fit-fill:-webkit-full-screen :deep(canvas) {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
   object-fit: fill !important;
+  margin: 0 auto !important;
 }
 
-/* Cover mode: Zoom to fill top & bottom without stretching */
-.content-wrapper.fit-cover:fullscreen :deep(.video),
-.content-wrapper.fit-cover:fullscreen :deep(canvas),
-.content-wrapper.fit-cover:-webkit-full-screen :deep(.video),
-.content-wrapper.fit-cover:-webkit-full-screen :deep(canvas) {
-  object-fit: cover !important;
-}
-
-/* Contain mode: Original ratio with top & bottom black bars */
-.content-wrapper.fit-contain:fullscreen :deep(.video),
-.content-wrapper.fit-contain:fullscreen :deep(canvas),
-.content-wrapper.fit-contain:-webkit-full-screen :deep(.video),
-.content-wrapper.fit-contain:-webkit-full-screen :deep(canvas) {
+/* 2. 20:9 Mode: Native phone ratio (2400x1080 = 20:9) */
+.content-wrapper.fit-20-9:fullscreen :deep(.video),
+.content-wrapper.fit-20-9:fullscreen :deep(canvas),
+.content-wrapper.fit-20-9:-webkit-full-screen :deep(.video),
+.content-wrapper.fit-20-9:-webkit-full-screen :deep(canvas) {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
   object-fit: contain !important;
+  margin: auto !important;
+}
+
+/* 3. 11.6" Screen Mode: 16:9 widescreen format (1366x768 / 1920x1080) */
+.content-wrapper.fit-11-6:fullscreen :deep(.video),
+.content-wrapper.fit-11-6:fullscreen :deep(canvas),
+.content-wrapper.fit-11-6:-webkit-full-screen :deep(.video),
+.content-wrapper.fit-11-6:-webkit-full-screen :deep(canvas) {
+  width: 100vw !important;
+  height: 100vh !important;
+  aspect-ratio: 16 / 9 !important;
+  object-fit: fill !important;
+  margin: auto !important;
 }
 
 /* Floating bottom controls in fullscreen mode */
