@@ -70,7 +70,7 @@ const updateChartData = () => {
       data.push({
         time: timeStamps[idx],
         value: processedJankValue,
-        type: '卡顿',
+        type: 'Jank',
         // 添加原始值用于调试
         rawValue: jankValue
       });

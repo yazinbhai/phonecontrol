@@ -102,31 +102,30 @@ const useScrcpy = () => {
             const adb = adbInstance.value;
             
             if (!adb) {
-                throw new Error('ADB 实例未初始化');
+                throw new Error('ADB instance not initialized');
             }
             
             await pushServerAndStartScrcpyClient(adb, '/server.bin');
-            console.log('服务端已推送');
+            console.log('Server pushed');
 
             await startScrcpyClient(adb);
         } catch (error) {
-            console.error('初始化 scrcpy 时出错:', error);
+            console.error('Error initializing scrcpy:', error);
             connectionStatus.value = 'error';
-            connectionError.value = `连接错误: ${error.message || '未知错误'}`;
+            const serverDetail = error.output && error.output.length ? `: ${error.output.filter(Boolean).join('\n')}` : '';
+            connectionError.value = `Connection error: ${error.message || 'Unknown error'}${serverDetail}`;
         }
     };
 
     /**
-     * 获取设备真实分辨率
-     * @param {Object} adb ADB 实例
+     * Get device real resolution
+     * @param {Object} adb ADB instance
      */
     const getDeviceRealResolution = async (adb) => {
         try {
-            // 使用 ADB 命令获取设备分辨率
             if (adb.subprocess.shellProtocol?.isSupported) {
                 const result = await adb.subprocess.shellProtocol.spawnWaitText('wm size');
                 
-                // 解析输出，格式通常是 "Physical size: 2160x1080"
                 const match = result.stdout.match(/(\d+)x(\d+)/);
                 if (match) {
                     deviceRealWidth = parseInt(match[1]);
@@ -135,22 +134,20 @@ const useScrcpy = () => {
                 }
             }
         } catch (error) {
-            // 忽略错误，使用默认值
+            // Ignore error, fallback to default
         }
         
-        // 如果 ADB 命令失败，手动设置已知的设备分辨率
         deviceRealWidth = 1080;
         deviceRealHeight = 2160;
         return true;
     };
 
     /**
-     * 启动 scrcpy 客户端并初始化视频流
-     * @param adb ADB 实例
+     * Start scrcpy client and video stream
+     * @param adb ADB instance
      */
     const startScrcpyClient = async (adb) => {
         try {
-            // 首先获取设备真实分辨率
             await getDeviceRealResolution(adb);
             
             options = new AdbScrcpyOptionsLatest({
@@ -158,10 +155,8 @@ const useScrcpy = () => {
                 scid: ScrcpyInstanceId.random(),
             });
 
-            // 启动 scrcpy 客户端
             client = await AdbScrcpyClient.start(adb, DefaultServerPath, options);
             
-            // 处理服务器输出
             client.output.pipeTo(new WritableStream({
                 write: (line) => {
                     console.log('scrcpy server:', line);
@@ -169,31 +164,29 @@ const useScrcpy = () => {
             })).catch(e => {
                 console.error('output stream error:', e);
                 connectionStatus.value = 'error';
-                connectionError.value = `输出流错误: ${e.message || '未知错误'}`;
+                connectionError.value = `Output stream error: ${e.message || 'Unknown error'}`;
             });
 
-            // 获取视频流
             videoStream = await client.videoStream;
 
             if (videoStream) {
                 initializeVideoStream(videoStream);
-                console.log('视频流已启动');
+                console.log('Video stream started');
                 connectionStatus.value = 'connected';
             } else {
-                throw new Error('无法获取视频流');
+                throw new Error('Failed to get video stream');
             }
 
-            // 检查控制器状态
             if (client.controller) {
-                console.log('控制器已初始化，可以进行触控操作');
+                console.log('Controller initialized');
             } else {
-                console.error('控制器未初始化，无法进行触控操作');
-                // 这不是致命错误，所以不改变连接状态
+                console.error('Controller not initialized');
             }
         } catch (error) {
-            console.error('启动 scrcpy 客户端时出错:', error);
+            console.error('Error starting scrcpy client:', error);
             connectionStatus.value = 'error';
-            connectionError.value = `客户端错误: ${error.message || '未知错误'}`;
+            const serverDetail = error.output && error.output.length ? `: ${error.output.filter(Boolean).join('\n')}` : '';
+            connectionError.value = `Client error: ${error.message || 'Unknown error'}${serverDetail}`;
             throw error;
         }
     };
@@ -343,6 +336,22 @@ const useScrcpy = () => {
      * 根据宽高和旋转调整容器和渲染器样式。
      */
     const changeStyle = () => {
+        if (typeof document !== 'undefined' && document.fullscreenElement) {
+            if (decoder && decoder.renderer && decoder.renderer.canvas) {
+                const canvas = decoder.renderer.canvas;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.maxWidth = '100vw';
+                canvas.style.maxHeight = '100vh';
+                canvas.style.borderRadius = '0px';
+                canvas.style.border = 'none';
+                canvas.style.boxShadow = 'none';
+                canvas.style.margin = '0 auto';
+                canvas.style.display = 'block';
+            }
+            return;
+        }
+
         const [calcWidth, calcHeight] = swapWidthHeight(width.value, height.value);
         console.log('计算后的宽高:', calcWidth, calcHeight);
 

@@ -42,19 +42,19 @@ const updateChartData = () => {
     const idx = startIdx + i;
     const timeValue = timeStamps[idx];
     
-    // 应用CPU
+    // App CPU
     data.push({
       time: timeValue,
       value: cpuAppHistory[idx] !== null && cpuAppHistory[idx] !== undefined ? cpuAppHistory[idx] : 0,
-      type: '应用CPU'
+      type: 'App CPU'
     });
 
-    // 系统CPU
+    // System CPU
     if (idx < cpuSystemHistory.length) {
       data.push({
         time: timeValue,
         value: cpuSystemHistory[idx] !== null && cpuSystemHistory[idx] !== undefined ? cpuSystemHistory[idx] : 0,
-        type: '系统CPU'
+        type: 'System CPU'
       });
     }
   }

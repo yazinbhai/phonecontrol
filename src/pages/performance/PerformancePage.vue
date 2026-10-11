@@ -1,17 +1,17 @@
 <template>
   <div class="performance-page">
     <div class="container">
-      <!-- 控制面板 -->
+      <!-- Control Panel -->
       <el-card class="mb-4 control-panel-card">
         <div class="panel-container">
-          <!-- 左侧：设置区域 -->
+          <!-- Left: Settings -->
           <div class="left-panel">
             <div class="settings-group">
               <div class="setting-item">
-                <div class="label"><el-icon><Menu /></el-icon> 监控应用</div>
+                <div class="label"><el-icon><Menu /></el-icon> Monitored App</div>
                 <el-select 
                   v-model="selectedPackage"
-                  placeholder="选择一个应用开始监控"
+                  placeholder="Select an app to monitor"
                   :disabled="isMonitoring"
                   filterable
                   class="full-width"
@@ -32,12 +32,12 @@
                 </el-select>
               </div>
               
-              <!-- 新增PID选择 -->
+              <!-- PID Selection -->
               <div class="setting-item" v-if="processList.length > 0">
-                <div class="label"><el-icon><Phone /></el-icon> 选择进程</div>
+                <div class="label"><el-icon><Phone /></el-icon> Select Process</div>
                 <el-select 
                   v-model="selectedPid"
-                  placeholder="选择应用进程"
+                  placeholder="Select application process"
                   :disabled="isMonitoring"
                   class="full-width"
                 >
@@ -51,16 +51,16 @@
               </div>
               
               <div class="setting-item">
-                <div class="label"><el-icon><Timer /></el-icon> 采集间隔</div>
+                <div class="label"><el-icon><Timer /></el-icon> Interval</div>
                 <el-select 
                   v-model="collectionInterval"
                   :disabled="isMonitoring"
                   style="width: 150px"
                 >
-                  <el-option label="1 秒" value="1000" />
-                  <el-option label="2 秒" value="2000" />
-                  <el-option label="5 秒" value="5000" />
-                  <el-option label="10 秒" value="10000" />
+                  <el-option label="1 s" value="1000" />
+                  <el-option label="2 s" value="2000" />
+                  <el-option label="5 s" value="5000" />
+                  <el-option label="10 s" value="10000" />
                 </el-select>
                 <el-button
                   type="warning"
@@ -68,7 +68,7 @@
                   :disabled="isLoading || isMonitoring"
                   :loading="isLoading"
                   :icon="Timer"
-                >刷新应用列表
+                >Refresh Apps
                 </el-button>
                 <el-button
                   type="success"
@@ -76,34 +76,34 @@
                   :disabled="isLoading"
                   :loading="isGettingCurrentApp"
                   :icon="Search"
-                >获取当前应用
+                >Get Current App
                 </el-button>
               </div>
               <div class="setting-item">
-                <div class="label"><el-icon><DataAnalysis /></el-icon> 采集上限</div>
+                <div class="label"><el-icon><DataAnalysis /></el-icon> Data Cap</div>
                 <el-select 
                   v-model="localMaxDataPoints"
                   :disabled="isMonitoring"
                   style="width: 150px"
                   @change="updateMaxDataPoints"
                 >
-                  <el-option label="300 条 (默认)" :value="300" />
-                  <el-option label="500 条" :value="500" />
-                  <el-option label="1000 条" :value="1000" />
-                  <el-option label="2000 条" :value="2000" />
-                  <el-option label="5000 条" :value="5000" />
-                  <el-option label="不限制" :value="0" />
+                  <el-option label="300 pts (Default)" :value="300" />
+                  <el-option label="500 pts" :value="500" />
+                  <el-option label="1000 pts" :value="1000" />
+                  <el-option label="2000 pts" :value="2000" />
+                  <el-option label="5000 pts" :value="5000" />
+                  <el-option label="Unlimited" :value="0" />
                 </el-select>
-                <el-tooltip content="采集上限越打占用内存越大，不限制可能导致长时间监控时内存占用过高" placement="top">
+                <el-tooltip content="Higher limits consume more memory. Unlimited may cause high memory usage over time." placement="top">
                   <el-icon class="info-icon"><InfoFilled /></el-icon>
                 </el-tooltip>
               </div>
             </div>
           </div>
 
-          <!-- 右侧：状态显示和操作按钮区域 -->
+          <!-- Right: Status and Actions -->
           <div class="right-panel">
-            <!-- 状态显示区域 -->
+            <!-- Status Display -->
             <div class="status-display">
               <template v-if="isMonitoring">
                 <div class="monitoring-status">
@@ -112,19 +112,19 @@
                     <span>{{ currentAppName }}</span>
                   </div>
                   <div class="duration">
-                    运行时长: {{ monitoringDuration }}
+                    Duration: {{ monitoringDuration }}
                   </div>
                 </div>
               </template>
               <template v-else>
                 <div class="idle-status">
                   <el-icon><InfoFilled /></el-icon>
-                  <span>待机中，请选择应用并开始监控</span>
+                  <span>Idle. Please select an app to start monitoring</span>
                 </div>
               </template>
             </div>
             
-            <!-- 操作按钮区域 -->
+            <!-- Actions -->
             <div class="action-buttons-container">
               <div class="action-buttons">
                 <el-button 
@@ -135,7 +135,7 @@
                   class="action-btn"
                 >
                   <el-icon class="mx-2"><VideoPlay /></el-icon>
-                  开始监控
+                  Start Monitor
                 </el-button>
                 <el-button 
                   v-else 
@@ -144,7 +144,7 @@
                   class="action-btn"
                 >
                   <el-icon class="mx-2"><VideoPause /></el-icon>
-                  停止监控
+                  Stop Monitor
                 </el-button>
                 <el-button 
                   type="success"
@@ -153,77 +153,77 @@
                   class="action-btn"
                 >
                   <el-icon class="mx-2"><Download /></el-icon>
-                  导出报告
+                  Export Report
                 </el-button>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- 实时数据展示 -->
+        <!-- Real-time Stats Display -->
         <el-divider v-if="isMonitoring" />
         <el-row :gutter="20" v-if="isMonitoring" class="live-stats">
           <el-col :span="6">
-            <el-statistic title="CPU 使用率" :value="latestCpu">
+            <el-statistic title="CPU Usage" :value="latestCpu">
               <template #suffix>%</template>
             </el-statistic>
           </el-col>
           <el-col :span="6">
-            <el-statistic title="内存占用" :value="latestMemory">
+            <el-statistic title="Memory Usage" :value="latestMemory">
               <template #suffix>MB</template>
             </el-statistic>
           </el-col>
           <el-col :span="6">
-            <el-statistic title="实时帧率" :value="latestFps">
+            <el-statistic title="Real-time FPS" :value="latestFps">
                <template #suffix>FPS</template>
             </el-statistic>
           </el-col>
           <el-col :span="6">
-            <el-statistic title="电池温度" :value="latestTemp">
+            <el-statistic title="Battery Temp" :value="latestTemp">
               <template #suffix>°C</template>
             </el-statistic>
           </el-col>
-          <!-- 前台应用信息 -->
+          <!-- Foreground App Info -->
           <el-col :span="24" class="mt-3">
             <el-card class="foreground-app-card" shadow="never">
               <template #header>
                 <div class="card-header">
-                  <span class="title">当前前台应用</span>
+                  <span class="title">Current Foreground App</span>
                   <el-tag
                     :type="currentForegroundApp.packageName ? 'success' : 'info'"
                     size="small"
                   >
-                    {{ currentForegroundApp.packageName ? '已检测' : '未检测' }}
+                    {{ currentForegroundApp.packageName ? 'Detected' : 'None' }}
                   </el-tag>
                 </div>
               </template>
 
               <div v-if="currentForegroundApp.packageName" class="app-details">
                 <div class="detail-row">
-                  <span class="label">应用名称:</span>
-                  <span class="value">{{ currentForegroundApp.appName || '未知' }}</span>
+                  <span class="label">App Name:</span>
+                  <span class="value">{{ currentForegroundApp.appName || 'Unknown' }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">应用类型:</span>
+                  <span class="label">App Type:</span>
                   <el-tag
                     size="small"
                     :type="currentForegroundApp.isSystemApp ? 'warning' : 'success'"
                   >
-                    {{ currentForegroundApp.isSystemApp ? '系统应用' : '第三方应用' }}
+                    {{ currentForegroundApp.isSystemApp ? 'System App' : 'Third-Party App' }}
                   </el-tag>
                 </div>
                 <div class="detail-row">
-                  <span class="label">包名:</span>
+                  <span class="label">Package:</span>
                   <span class="value">{{ currentForegroundApp.packageName }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="label">进程ID:</span>
-                  <span class="value">{{ currentForegroundApp.pid || '未知' }}</span>
+                  <span class="label">Process ID:</span>
+                  <span class="value">{{ currentForegroundApp.pid || 'Unknown' }}</span>
                 </div>
               </div>
 
               <div v-else class="no-app">
-                <span class="no-app-text">未检测到前台应用</span>
+                <span class="no-app-text">No foreground app detected</span>
               </div>
             </el-card>
           </el-col>
@@ -232,30 +232,30 @@
             <div class="data-point-info">
               <el-icon><InfoFilled /></el-icon>
               <span>
-                已采集 {{ performanceStore.timeStamps.length }} 条数据
-                {{ performanceStore.maxDataPoints > 0 ? `(最大 ${performanceStore.maxDataPoints} 个)` : '(无限制)' }}，
-                图表显示最近60条数据，导出将包含全部数据。
+                Collected {{ performanceStore.timeStamps.length }} data points
+                {{ performanceStore.maxDataPoints > 0 ? `(Max ${performanceStore.maxDataPoints})` : '(Unlimited)' }},
+                charts display the last 60 points; export includes all data.
               </span>
             </div>
           </el-col>
         </el-row>
       </el-card>
       
-      <!-- 图表区域 -->
+      <!-- Charts Section -->
       <el-row :gutter="20">
-        <!-- CPU使用率图表 -->
+        <!-- CPU Usage Chart -->
         <el-col :xs="24" :sm="24" :md="12" class="mb-4">
           <el-card class="chart-card">
             <template #header>
               <div class="card-header">
-                <h5 class="card-title">CPU使用率</h5>
+                <h5 class="card-title">CPU Usage</h5>
               </div>
             </template>
             <div class="chart-placeholder">
               <div v-if="!isMonitoring" class="chart-empty-state">
                 <div class="empty-chart-container">
                   <el-icon class="empty-icon"><Cpu /></el-icon>
-                  <div class="empty-text">启动监控后将显示CPU使用率图表</div>
+                  <div class="empty-text">CPU usage chart will appear once monitoring starts</div>
                 </div>
               </div>
               <CpuChart v-else />
@@ -263,19 +263,19 @@
           </el-card>
         </el-col>
         
-        <!-- 内存使用图表 -->
+        <!-- Memory Usage Chart -->
         <el-col :xs="24" :sm="24" :md="12" class="mb-4">
           <el-card class="chart-card">
             <template #header>
               <div class="card-header">
-                <h5 class="card-title">内存使用</h5>
+                <h5 class="card-title">Memory Usage</h5>
               </div>
             </template>
             <div class="chart-placeholder">
               <div v-if="!isMonitoring" class="chart-empty-state">
                 <div class="empty-chart-container">
                   <el-icon class="empty-icon"><Histogram /></el-icon>
-                  <div class="empty-text">启动监控后将显示内存使用图表</div>
+                  <div class="empty-text">Memory usage chart will appear once monitoring starts</div>
                 </div>
               </div>
               <MemoryChart v-else />
@@ -283,7 +283,7 @@
           </el-card>
         </el-col>
         
-        <!-- FPS图表 -->
+        <!-- FPS Chart -->
         <el-col :xs="24" :sm="24" :md="12" class="mb-4">
           <el-card class="chart-card">
             <template #header>
@@ -295,7 +295,7 @@
               <div v-if="!isMonitoring" class="chart-empty-state">
                 <div class="empty-chart-container">
                   <el-icon class="empty-icon"><DataAnalysis /></el-icon>
-                  <div class="empty-text">启动监控后将显示FPS图表</div>
+                  <div class="empty-text">FPS chart will appear once monitoring starts</div>
                 </div>
               </div>
               <FpsChart v-else />
@@ -303,19 +303,19 @@
           </el-card>
         </el-col>
         
-        <!-- 网络流量图表 -->
+        <!-- Network Traffic Chart -->
         <el-col :xs="24" :sm="24" :md="12" class="mb-4">
           <el-card class="chart-card">
             <template #header>
               <div class="card-header">
-                <h5 class="card-title">网络流量</h5>
+                <h5 class="card-title">Network Traffic</h5>
               </div>
             </template>
             <div class="chart-placeholder">
               <div v-if="!isMonitoring" class="chart-empty-state">
                 <div class="empty-chart-container">
                   <el-icon class="empty-icon"><Connection /></el-icon>
-                  <div class="empty-text">启动监控后将显示网络流量图表</div>
+                  <div class="empty-text">Network traffic chart will appear once monitoring starts</div>
                 </div>
               </div>
               <NetworkChart v-else />
@@ -323,19 +323,19 @@
           </el-card>
         </el-col>
         
-        <!-- 电池电量图表 -->
+        <!-- Battery Level Chart -->
         <el-col :xs="24" :sm="24" :md="12" class="mb-4">
           <el-card class="chart-card">
             <template #header>
               <div class="card-header">
-                <h5 class="card-title">电池电量</h5>
+                <h5 class="card-title">Battery Level</h5>
               </div>
             </template>
             <div class="chart-placeholder">
               <div v-if="!isMonitoring" class="chart-empty-state">
                 <div class="empty-chart-container">
                   <el-icon class="empty-icon"><Odometer /></el-icon>
-                  <div class="empty-text">启动监控后将显示电池电量图表</div>
+                  <div class="empty-text">Battery level chart will appear once monitoring starts</div>
                 </div>
               </div>
               <BatteryChart v-else />
@@ -343,19 +343,19 @@
           </el-card>
         </el-col>
         
-        <!-- 电池温度图表 -->
+        <!-- Battery Temperature Chart -->
         <el-col :xs="24" :sm="24" :md="12" class="mb-4">
           <el-card class="chart-card">
             <template #header>
               <div class="card-header">
-                <h5 class="card-title">电池温度</h5>
+                <h5 class="card-title">Battery Temperature</h5>
               </div>
             </template>
             <div class="chart-placeholder">
               <div v-if="!isMonitoring" class="chart-empty-state">
                 <div class="empty-chart-container">
                   <el-icon class="empty-icon"><Odometer /></el-icon>
-                  <div class="empty-text">启动监控后将显示电池温度图表</div>
+                  <div class="empty-text">Battery temperature chart will appear once monitoring starts</div>
                 </div>
               </div>
               <TemperatureChart v-else />
@@ -453,49 +453,49 @@ const refreshAppList = async () => {
   }
 };
 
-// 获取当前前台应用
+// Get current foreground app
 const getCurrentApp = async () => {
   isGettingCurrentApp.value = true;
   try {
     const foregroundApp = await collectForegroundApp();
 
     if (foregroundApp && foregroundApp.packageName) {
-      // 检查是否为系统应用
+      // Check if system app
       if (foregroundApp.isSystemApp) {
-        // 系统应用提示
+        // System app prompt
         ElMessageBox.confirm(
-          `检测到当前前台应用为系统内置应用：${foregroundApp.appName || foregroundApp.packageName}。\n\n系统应用的性能数据可能不够准确或有限制。\n\n是否仍要对此应用进行性能监控？`,
-          '系统应用提示',
+          `Detected that the current foreground app is a built-in system app: ${foregroundApp.appName || foregroundApp.packageName}.\n\nPerformance metrics for system apps may be limited or less accurate.\n\nDo you still wish to monitor this app?`,
+          'System App Notice',
           {
-            confirmButtonText: '继续监控',
-            cancelButtonText: '取消',
+            confirmButtonText: 'Continue',
+            cancelButtonText: 'Cancel',
             type: 'warning',
             center: true
           }
         ).then(async () => {
-          // 用户选择继续监控
+          // Continue monitoring
           await selectAndMonitorApp(foregroundApp);
         }).catch(() => {
-          // 用户取消
+          // User cancelled
           ElMessage.info({
-            message: '已取消对系统应用的监控',
+            message: 'Cancelled monitoring system app',
             duration: 2000
           });
         });
       } else {
-        // 第三方应用，直接选择
+        // Third-party app, select directly
         await selectAndMonitorApp(foregroundApp);
       }
     } else {
       ElMessage.warning({
-        message: '未检测到前台应用，请确保设备上有应用正在运行',
+        message: 'No foreground app detected. Please make sure an app is running on the device.',
         duration: 3000
       });
     }
   } catch (error) {
-    console.error('获取当前应用失败:', error);
+    console.error('Failed to get current app:', error);
     ElMessage.error({
-      message: '获取当前应用失败，请检查设备连接',
+      message: 'Failed to get current app. Please check device connection.',
       duration: 3000
     });
   } finally {
@@ -503,18 +503,16 @@ const getCurrentApp = async () => {
   }
 };
 
-// 选择并准备监控应用
+// Select and prepare monitoring app
 const selectAndMonitorApp = async (foregroundApp) => {
   try {
-    // 检查应用是否在已安装应用列表中
+    // Check if app is in installed apps list
     const existingApp = installedApps.value.find(app => app.packageName === foregroundApp.packageName);
 
     if (existingApp) {
-      // 如果应用在列表中，直接选择
       selectedPackage.value = foregroundApp.packageName;
       await onAppSelected(foregroundApp.packageName);
     } else {
-      // 如果应用不在列表中，添加到列表并选择
       const newApp = {
         packageName: foregroundApp.packageName,
         appName: foregroundApp.appName || foregroundApp.packageName
@@ -524,18 +522,17 @@ const selectAndMonitorApp = async (foregroundApp) => {
       await onAppSelected(foregroundApp.packageName);
     }
 
-    // 成功消息
-    const appType = foregroundApp.isSystemApp ? '系统应用' : '第三方应用';
-    const addedText = existingApp ? '' : '（已添加到应用列表）';
+    const appType = foregroundApp.isSystemApp ? 'system app' : 'third-party app';
+    const addedText = existingApp ? '' : ' (added to app list)';
 
     ElMessage.success({
-      message: `已获取当前前台${appType}: ${foregroundApp.appName || foregroundApp.packageName}${addedText}`,
+      message: `Selected foreground ${appType}: ${foregroundApp.appName || foregroundApp.packageName}${addedText}`,
       duration: 3000
     });
   } catch (error) {
-    console.error('选择应用失败:', error);
+    console.error('Failed to select app:', error);
     ElMessage.error({
-      message: '选择应用失败，请重试',
+      message: 'Failed to select app, please try again',
       duration: 3000
     });
   }
@@ -553,19 +550,17 @@ const onAppSelected = async (packageName) => {
     const processes = await getProcessList(packageName);
     processList.value = processes;
     
-    // 如果只有一个进程，自动选择
     if (processes.length === 1) {
       selectedPid.value = processes[0].pid;
     } else if (processes.length > 1) {
-      // 默认选择第一个进程
       selectedPid.value = processes[0].pid;
     } else {
       selectedPid.value = '';
-      ElMessage.warning(`未找到应用 ${packageName} 的进程`);
+      ElMessage.warning(`No process found for app ${packageName}`);
     }
   } catch (error) {
-    console.error('获取进程列表失败:', error);
-    ElMessage.error('获取进程列表失败');
+    console.error('Failed to get process list:', error);
+    ElMessage.error('Failed to get process list');
     processList.value = [];
     selectedPid.value = '';
   } finally {
@@ -575,62 +570,53 @@ const onAppSelected = async (packageName) => {
 
 const startMonitoring = async () => {
   if (!selectedPackage.value) {
-    ElMessage.warning('请先选择要监控的应用');
+    ElMessage.warning('Please select an app to monitor first');
     return;
   }
 
   if (!selectedPid.value && processList.value.length > 0) {
-    ElMessage.warning('请选择要监控的进程');
+    ElMessage.warning('Please select a process to monitor');
     return;
   }
 
   isLoading.value = true;
   try {
-    // 启动监控
     const success = await startMonitoringAPI(selectedPackage.value, selectedPid.value);
     if (success) {
-      // 记录开始时间
       monitoringStartTime.value = new Date();
       
-      // 启动计时器，更新运行时长
       durationTimer = setInterval(() => {
         updateDuration();
       }, 1000);
       
-      ElMessage.success(`已开始监控 ${selectedPackage.value}`);
+      ElMessage.success(`Started monitoring ${selectedPackage.value}`);
     } else {
-      ElMessage.error('启动监控失败');
+      ElMessage.error('Failed to start monitoring');
     }
   } catch (error) {
-    console.error('启动监控时出错:', error);
-    ElMessage.error('启动监控失败: ' + error.message);
+    console.error('Error starting monitoring:', error);
+    ElMessage.error('Failed to start monitoring: ' + error.message);
   } finally {
     isLoading.value = false;
   }
 };
 
 const stopMonitor = () => {
-  // 停止监控
   stopMonitoringAPI();
   
-  // 清除计时器
   if (durationTimer) {
     clearInterval(durationTimer);
     durationTimer = null;
   }
   
-  // 显示消息
-  ElMessage.info('性能监控已停止');
-  
-  // 检查数据一致性
+  ElMessage.info('Performance monitoring stopped');
   checkDataConsistency();
 };
 
-// 将函数赋值给变量，以便在模板中使用
 const stopMonitoring = stopMonitor;
 
 /**
- * 检查数据一致性，确保所有数据数组长度相同
+ * Check data consistency
  */
 const checkDataConsistency = () => {
   const timeStampsLength = performanceStore.timeStamps.length;
@@ -652,36 +638,31 @@ const checkDataConsistency = () => {
   const allEqual = Object.values(dataLengths).every(len => len === timeStampsLength);
   
   if (!allEqual) {
-    console.warn('数据长度不一致，可能影响图表显示:', dataLengths);
+    console.warn('Data lengths inconsistent, may affect chart rendering:', dataLengths);
     
-    // 尝试修复数据长度不一致的问题
     Object.entries(dataLengths).forEach(([key, length]) => {
       if (key !== 'timeStamps' && length !== timeStampsLength) {
-        console.warn(`${key}数据长度(${length})与timeStamps长度(${timeStampsLength})不一致`);
+        console.warn(`${key} length (${length}) differs from timeStamps (${timeStampsLength})`);
       }
     });
   } else {
-    console.log('数据长度一致性检查通过:', timeStampsLength);
+    console.log('Data consistency check passed:', timeStampsLength);
   }
 };
 
 /**
- * 导出性能数据为CSV文件
+ * Export performance data as CSV
  */
 const exportData = () => {
-  // 检查是否有数据
   if (performanceStore.timeStamps.length === 0) {
-    ElMessage.warning('没有可导出的数据');
+    ElMessage.warning('No data available to export');
     return;
   }
   
-  // 检查数据一致性
   checkDataConsistency();
   
-  // 准备CSV头
   let csvContent = 'Timestamp,CPU App(%),CPU System(%),Memory(MB),Battery(%),Temperature(°C),Network Download(KB/s),Network Upload(KB/s),FPS,Jank Count\n';
   
-  // 添加数据行
   const timeStamps = performanceStore.timeStamps;
   for (let i = 0; i < timeStamps.length; i++) {
     const row = [
@@ -700,42 +681,35 @@ const exportData = () => {
     csvContent += row + '\n';
   }
   
-  // 创建Blob对象
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  
-  // 创建下载链接
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   
-  // 设置下载属性
   link.setAttribute('href', url);
   link.setAttribute('download', `performance_data_${selectedPackage.value}_${new Date().toISOString().replace(/:/g, '-')}.csv`);
   link.style.visibility = 'hidden';
   
-  // 添加到文档并触发下载
   document.body.appendChild(link);
   link.click();
   
-  // 清理
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
   
-  ElMessage.success('数据导出成功');
+  ElMessage.success('Data exported successfully');
 };
 
-// 设置最大数据点数量
+// Set max data points
 const updateMaxDataPoints = (value) => {
-  // 更新store中的配置
   performanceStore.setMaxDataPoints(value);
   
   const message = value === 0 
-    ? '已设置为不限制数据点数量，长时间监控可能会占用较多内存' 
-    : `最大数据点数量已设置为 ${value} 个`;
+    ? 'Set to unlimited data points. Extended monitoring may consume more memory.' 
+    : `Maximum data points set to ${value}`;
   
   ElMessage.success(message);
 };
 
-// 更新监控持续时间
+// Update monitoring duration
 const updateDuration = () => {
   if (!monitoringStartTime.value) return;
   

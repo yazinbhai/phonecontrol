@@ -35,9 +35,9 @@ watch(() => props.memoryData, (newData) => {
     
     // 添加到历史数据
     historyData.value.push({
-      time: new Date(latestDataPoint.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
+      time: new Date(latestDataPoint.timestamp).toLocaleTimeString([], { hour12: false }),
       value: latestDataPoint.memory,
-      type: '已用内存'
+      type: 'Used Memory'
     });
     
     // 保持历史数据不超过最大数量
@@ -56,9 +56,9 @@ onMounted(() => {
     for (let i = 0; i < props.maxPoints; i++) {
       const time = new Date(now.getTime() - (props.maxPoints - i - 1) * 1000);
       mockData.push({
-        time: time.toLocaleTimeString('zh-CN', { hour12: false }),
-        value: 2000 + Math.random() * 1000, // 随机内存占用在2000~3000MB之间
-        type: '已用内存'
+        time: time.toLocaleTimeString([], { hour12: false }),
+        value: 2000 + Math.random() * 1000,
+        type: 'Used Memory'
       });
     }
     

@@ -35,9 +35,9 @@ watch(() => props.cpuData, (newData) => {
     
     // 添加到历史数据
     historyData.value.push({
-      time: new Date(latestDataPoint.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
+      time: new Date(latestDataPoint.timestamp).toLocaleTimeString([], { hour12: false }),
       value: latestDataPoint.frequency,
-      type: 'CPU频率'
+      type: 'CPU Frequency'
     });
     
     // 保持历史数据不超过最大数量
@@ -56,9 +56,9 @@ onMounted(() => {
     for (let i = 0; i < props.maxPoints; i++) {
       const time = new Date(now.getTime() - (props.maxPoints - i - 1) * 1000);
       mockData.push({
-        time: time.toLocaleTimeString('zh-CN', { hour12: false }),
-        value: 1200 + Math.random() * 800, // 随机频率在1200~2000MHz之间
-        type: 'CPU频率'
+        time: time.toLocaleTimeString([], { hour12: false }),
+        value: 1200 + Math.random() * 800, // Random freq 1200~2000MHz
+        type: 'CPU Frequency'
       });
     }
     

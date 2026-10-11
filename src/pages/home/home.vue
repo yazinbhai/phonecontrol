@@ -1,40 +1,40 @@
 <template>
   <div v-if="connectStatus === 'disconnected'">
     <div class="d-flex justify-content-center homeTitle">
-      <h1>设备配对</h1>
+      <h1>Device Pairing</h1>
     </div>
     <div class="d-flex justify-content-center my-4">
-      <h4>选择并验证设备</h4>
+      <h4>Select and verify your device</h4>
     </div>
   </div>
   <div v-else-if="connectStatus === 'autoConnecting'">
     <div class="d-flex justify-content-center homeTitle">
-      <h2 class="mb-5">正在自动连接
+      <h2 class="mb-5">Auto-connecting to
         <span class="fw-bold" style="font-size: 25px;color: #409EFF">{{ devicesName }}</span>
       </h2>
     </div>
     <div class="d-flex justify-content-center my-4">
-      <span class="fw-bold">正在自动连接设备，请稍候…</span>
+      <span class="fw-bold">Auto-connecting to device, please wait...</span>
     </div>
   </div>
   <div v-else-if="connectStatus === 'connectConfirming'">
     <div class="d-flex justify-content-center homeTitle">
-      <h2 class="mb-5">正在连接
+      <h2 class="mb-5">Connecting to
         <span class="fw-bold" style="font-size: 25px;color: #409EFF">{{ devicesName }}</span>
       </h2>
     </div>
     <div class="d-flex justify-content-center my-4">
-      <span class="fw-bold">请在手机的允许调试弹窗中勾选一律允许复选框，并点击允许按钮</span>
+      <span class="fw-bold">Please check "Always allow from this computer" and tap "Allow" on your phone's USB debugging prompt.</span>
     </div>
   </div>
   <div v-else>
     <div class="d-flex justify-content-center homeTitle">
-      <h2 class="mb-5">正在连接
+      <h2 class="mb-5">Connecting to
         <span class="fw-bold" style="font-size: 25px;color: #409EFF">{{ devicesName }}</span>
       </h2>
     </div>
     <div class="d-flex justify-content-center my-4">
-      <span class="fw-bold">正在连接设备，请稍候…</span>
+      <span class="fw-bold">Connecting to device, please wait...</span>
     </div>
   </div>
   <div class="d-flex justify-content-center">
@@ -49,30 +49,30 @@
       <div v-else class="d-flex justify-content-center showConnectImg">
         <el-image :src="computerImg" class="computerImgCss" fit="contain"/>
         <div class="connectingCss">
-          <!-- 使用循环生成元素 -->
+          <!-- Animated connecting dots -->
           <div v-for="index in 3" :key="index" class="connecting-dot"></div>
         </div>
         <el-image :src="phoneImg" class="phoneImgCss" fit="contain"/>
       </div>
       <div v-if="connectStatus === 'disconnected'">
         <div class="d-flex justify-content-center">
-          <span>使用USB线连接设备</span>
+          <span>Connect your device with a USB cable</span>
         </div>
         <div class="d-flex justify-content-center my-2">
-          <span>然后在弹出窗口中连接</span>
+          <span>Then pair in the browser popup</span>
         </div>
         <div class="d-flex justify-content-center my-4">
-          <el-button type="primary" @click="connectDevice">连接设备</el-button>
+          <el-button type="primary" @click="connectDevice">Connect Device</el-button>
         </div>
         <div class="d-flex justify-content-center my-2" v-if="!hasStoredDevices">
           <el-alert 
-            title="自动连接提示" 
+            title="Auto-Connect Tip" 
             type="info" 
             show-icon
             :closable="false"
             style="max-width: 400px;">
             <template #default>
-              首次连接成功后，下次访问将自动连接已授权的设备
+              Once paired, authorized devices will automatically connect on future visits.
             </template>
           </el-alert>
         </div>
@@ -80,16 +80,16 @@
     </el-card>
   </div>
 
-  <!-- 多设备选择弹窗 -->
+  <!-- Multi-device selection modal -->
   <el-dialog
     v-model="showDeviceSelector"
-    title="选择连接设备"
+    title="Select Device to Connect"
     width="500px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
   >
     <div style="margin-bottom: 20px;">
-      <span style="color: #666;">检测到多个已授权设备，请选择要连接的设备：</span>
+      <span style="color: #666;">Multiple authorized devices found. Please select one:</span>
     </div>
     <div v-for="device in availableDevices" :key="device.index" style="margin-bottom: 10px;">
       <el-card
@@ -112,9 +112,9 @@
     </div>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="cancelDeviceSelection">取消</el-button>
+        <el-button @click="cancelDeviceSelection">Cancel</el-button>
         <el-button type="primary" @click="connectSelectedDevice" :disabled="!selectedDevice">
-          连接设备
+          Connect Device
         </el-button>
       </span>
     </template>
@@ -228,16 +228,16 @@ const connectToDevice = async (device, credentialStore) => {
 const tryAutoConnect = async () => {
   try {
     connectStatus.value = 'autoConnecting';
-    devicesName.value = '检查已授权设备...';
+    devicesName.value = 'Checking authorized devices...';
     
-    // 检查是否有WebUSB支持
+    // Check WebUSB support
     if (!AdbDaemonWebUsbDeviceManager.BROWSER) {
       connectStatus.value = 'disconnected';
       devicesName.value = '';
       return false;
     }
 
-    // 获取所有已授权的设备
+    // Get all authorized devices
     const devices = await AdbDaemonWebUsbDeviceManager.BROWSER.getDevices();
     rawDevices = devices;
     
@@ -249,7 +249,7 @@ const tryAutoConnect = async () => {
 
     const credentialStore = new AdbWebCredentialStore();
     
-    // 检查是否有存储的RSA密钥
+    // Check for stored RSA keys
     let hasKeys = false;
     try {
       for await (const key of credentialStore.iterateKeys()) {
@@ -257,7 +257,7 @@ const tryAutoConnect = async () => {
         break;
       }
     } catch (error) {
-      console.log('检查存储密钥时出错:', error);
+      console.log('Error checking stored keys:', error);
     }
     
     if (!hasKeys) {
@@ -266,10 +266,10 @@ const tryAutoConnect = async () => {
       return false;
     }
     
-    // 如果有多个设备，显示选择弹窗
+    // If multiple devices, show selector modal
     if (devices.length > 1) {
       availableDevices.value = devices.map((d, idx) => ({
-        name: d.productName || d.name || '未知设备',
+        name: d.productName || d.name || 'Unknown Device',
         vendorId: d.vendorId,
         productId: d.productId,
         index: idx
@@ -278,12 +278,12 @@ const tryAutoConnect = async () => {
       showDeviceSelector.value = true;
       connectStatus.value = 'disconnected';
       devicesName.value = '';
-      return false; // 等待用户选择
+      return false;
     }
     
-    // 只有一个设备，直接连接
+    // Single device, connect directly
     const device = devices[0];
-    devicesName.value = device.productName || device.name || '未知设备';
+    devicesName.value = device.productName || device.name || 'Unknown Device';
     
     setTimeout(() => {
       changeColor();
@@ -294,11 +294,10 @@ const tryAutoConnect = async () => {
       return true;
     } catch (error) {
       if (error.message === 'CREDENTIAL_EXPIRED') {
-        // 密钥过期，清除凭证并返回连接界面
         await clearExpiredCredentials();
         ElNotification.warning({
-          title: '认证已过期',
-          message: '设备认证已过期，请重新连接设备',
+          title: 'Authentication Expired',
+          message: 'Device authorization has expired. Please reconnect your device.',
           type: 'warning',
           duration: 3000
         });
@@ -310,14 +309,14 @@ const tryAutoConnect = async () => {
     }
     
   } catch (error) {
-    console.error('自动连接过程中出错:', error);
+    console.error('Error during auto-connect:', error);
     connectStatus.value = 'disconnected';
     devicesName.value = '';
     return false;
   }
 };
 
-// 连接选中的设备
+// Connect selected device
 const connectSelectedDevice = async () => {
   if (!selectedDevice.value) return;
   
@@ -331,23 +330,21 @@ const connectSelectedDevice = async () => {
   
   try {
     const credentialStore = new AdbWebCredentialStore();
-    // 用 index 找到原始 device
     const device = rawDevices[selectedDevice.value.index];
     await connectToDevice(device, credentialStore);
   } catch (error) {
     if (error.message === 'CREDENTIAL_EXPIRED') {
-      // 密钥过期，清除凭证并返回连接界面
       await clearExpiredCredentials();
       ElNotification.warning({
-        title: '认证已过期',
-        message: '设备认证已过期，请重新连接设备',
+        title: 'Authentication Expired',
+        message: 'Device authorization has expired. Please reconnect your device.',
         type: 'warning',
         duration: 3000
       });
     } else {
       ElNotification.error({
-        title: '连接失败',
-        message: '连接设备时出错，请重试',
+        title: 'Connection Failed',
+        message: 'Error connecting to device. Please try again.',
         type: 'error',
         duration: 3000
       });
@@ -358,24 +355,24 @@ const connectSelectedDevice = async () => {
   }
 };
 
-// 取消设备选择
+// Cancel device selection
 const cancelDeviceSelection = () => {
   showDeviceSelector.value = false;
   availableDevices.value = [];
   selectedDevice.value = null;
 };
 
-// 清除过期的凭证
+// Clear expired credentials
 const clearExpiredCredentials = async () => {
   try {
     await deviceCredentialManager.clearAllCredentials();
     hasStoredDevices.value = false;
   } catch (error) {
-    console.error('清除过期凭证时出错:', error);
+    console.error('Error clearing expired credentials:', error);
   }
 };
 
-// 手动连接设备
+// Manually connect device
 const connectDevice = async () => {
   connectStatus.value = 'connecting'
   setTimeout(() => {
@@ -392,7 +389,6 @@ const connectDevice = async () => {
       const credentialStore = new AdbWebCredentialStore();
       const connection = await device.connect();
       
-      // 使用 AdbDaemonTransport.authenticate 进行认证并创建完整的 transport
       const transport = await AdbDaemonTransport.authenticate({
         serial: device.serial,
         connection: connection,
@@ -402,18 +398,16 @@ const connectDevice = async () => {
       const adb = new Adb(transport);
       setAdbInstance(adb);
       
-      // 保存设备信息以便下次自动连接
       await deviceCredentialManager.saveDeviceInfo(device);
       
-      // 路由跳转
       await router.push({
         path: "/dashboard",
       });
     } catch (e) {
       console.log(e)
       ElNotification.error({
-        title: '连接失败',
-        message: '连接失败，当前设备已被其他应用程序占用！请关闭其他程序再尝试连接',
+        title: 'Connection Failed',
+        message: 'Connection failed: The device is currently in use by another application. Please close conflicting tools (e.g. adb.exe) and try again.',
         type: 'error',
         duration: 3000
       })
@@ -421,8 +415,8 @@ const connectDevice = async () => {
     }
   } else {
     ElNotification.error({
-      title: '连接失败',
-      message: '连接失败，请检查设备是否已连接',
+      title: 'Connection Failed',
+      message: 'Connection failed. Please check if your device is plugged in.',
       type: 'error',
       duration: 3000
     })

@@ -10,18 +10,19 @@
     @pointerleave="handlePointerLeave"
     @contextmenu="handleContextMenu"
     @wheel="handleWheel"
+    @dblclick="handleDblClick"
   />
 </template>
 
 <script setup>
-import { ref} from 'vue';
+import { ref } from 'vue';
 
 defineProps({
   classes: Object,
   containerStyle: Object,
 });
 
-const emit = defineEmits(['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'pointerleave', 'contextmenu', 'wheel']);
+const emit = defineEmits(['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'pointerleave', 'contextmenu', 'wheel', 'dblclick']);
 
 const renderContainer = ref();
 
@@ -31,6 +32,7 @@ const handlePointerUp = (event) => emit('pointerup', event);
 const handlePointerLeave = (event) => emit('pointerleave', event);
 const handleContextMenu = (event) => emit('contextmenu', event);
 const handleWheel = (event) => emit('wheel', event);
+const handleDblClick = (event) => emit('dblclick', event);
 
 defineExpose({ renderContainer })
 </script>

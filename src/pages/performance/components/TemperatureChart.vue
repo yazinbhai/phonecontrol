@@ -57,7 +57,7 @@ const updateChartData = () => {
     data.push({
       time: timeValue,
       value: tempValue !== null && tempValue !== undefined ? tempValue : 0,
-      type: '电池温度',
+      type: 'Battery Temp',
       rawValue: tempValue
     });
   }

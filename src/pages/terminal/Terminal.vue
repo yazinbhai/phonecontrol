@@ -1,10 +1,10 @@
 <template>
   <div class="terminal-page">
-    <!-- 终端内容区域 -->
+    <!-- Terminal Content Area -->
     <div class="terminal-content">
       <div v-if="!isDeviceConnected" class="no-device">
-        <el-empty description="设备未连接">
-          <el-button type="primary" @click="checkDevice">检查设备连接</el-button>
+        <el-empty description="Device not connected">
+          <el-button type="primary" @click="checkDevice">Check Connection</el-button>
         </el-empty>
       </div>
       <div 
@@ -15,7 +15,7 @@
       ></div>
     </div>
 
-    <!-- 右键菜单 -->
+    <!-- Context Menu -->
     <div 
       v-show="contextMenuVisible" 
       ref="contextMenuRef"
@@ -25,34 +25,34 @@
     >
       <div class="context-menu-item" @click="handleContextMenuCommand('restart')">
         <el-icon><Refresh /></el-icon>
-        <span>重新启动终端</span>
+        <span>Restart Terminal</span>
       </div>
       <div class="context-menu-item" @click="handleContextMenuCommand('clear')">
         <el-icon><Delete /></el-icon>
-        <span>清除终端内容</span>
+        <span>Clear Terminal</span>
       </div>
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" @click="handleContextMenuCommand('copy')">
         <el-icon><CopyDocument /></el-icon>
-        <span>复制选中内容</span>
+        <span>Copy Selection</span>
       </div>
       <div class="context-menu-item" @click="handleContextMenuCommand('paste')">
         <el-icon><DocumentCopy /></el-icon>
-        <span>粘贴</span>
+        <span>Paste</span>
       </div>
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" @click="handleContextMenuCommand('selectAll')">
         <el-icon><Select /></el-icon>
-        <span>全选</span>
+        <span>Select All</span>
       </div>
       <div class="context-menu-item" @click="handleContextMenuCommand('fontSize')">
         <el-icon><ZoomIn /></el-icon>
-        <span>调整字体大小</span>
+        <span>Adjust Font Size</span>
       </div>
     </div>
 
-    <!-- 字体大小调整对话框 -->
-    <el-dialog v-model="fontSizeDialogVisible" title="调整字体大小" width="300px">
+    <!-- Font Size Dialog -->
+    <el-dialog v-model="fontSizeDialogVisible" title="Adjust Font Size" width="300px">
       <div class="font-size-control">
         <el-slider
           v-model="fontSize"
@@ -64,13 +64,13 @@
         />
         <div class="font-size-preview">
           <span :style="{ fontSize: fontSize + 'px' }">
-            预览文本 Preview Text
+            Preview Text
           </span>
         </div>
       </div>
       <template #footer>
-        <el-button @click="fontSizeDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="applyFontSize">应用</el-button>
+        <el-button @click="fontSizeDialogVisible = false">Cancel</el-button>
+        <el-button type="primary" @click="applyFontSize">Apply</el-button>
       </template>
     </el-dialog>
   </div>
@@ -121,8 +121,8 @@ onMounted(async () => {
       await startTerminal()
     }
   } catch (error) {
-    console.error('初始化终端时出错:', error)
-    ElMessage.error('终端初始化失败')
+    console.error('Terminal init error:', error)
+    ElMessage.error('Failed to initialize terminal')
   }
 })
 
@@ -134,33 +134,30 @@ onBeforeRouteLeave(async () => {
   await cleanup()
 })
 
-// 检查设备连接状态
+// Check device connection status
 const checkDevice = async () => {
   const adbInstance = getAdbInstance()
-  console.log('检查设备连接状态:', adbInstance)
   isDeviceConnected.value = !!(adbInstance)
   
   if (!isDeviceConnected.value) {
-    ElMessage.warning('请先连接设备')
-  } else {
-    console.log('设备已连接，ADB实例:', adbInstance)
+    ElMessage.warning('Please connect a device first')
   }
   
   return isDeviceConnected.value
 }
 
-// 启动终端
+// Start terminal
 const startTerminal = async () => {
   if (isConnecting.value) return
   isConnecting.value = true
 
-  await cleanup() // 先清理旧实例
+  await cleanup()
 
   try {
     const adb = await getAdbInstance()
     if (!adb) {
       isDeviceConnected.value = false
-      ElMessage.error('无法获取ADB实例，请确保设备已连接')
+      ElMessage.error('Cannot access ADB instance. Please ensure device is connected.')
       return
     }
     isDeviceConnected.value = true
@@ -255,29 +252,28 @@ const startTerminal = async () => {
     window.addEventListener('resize', handleResize);
     
   } catch (error) {
-    console.error('启动终端时出错:', error);
-    ElMessage.error(`启动终端失败: ${error.message}`);
+    console.error('Failed to start terminal:', error);
+    ElMessage.error(`Failed to start terminal: ${error.message}`);
     await cleanup();
   } finally {
     isConnecting.value = false;
   }
 }
 
-// 清除终端内容
+// Clear terminal
 const clearTerminal = () => {
   if (terminal) {
     terminal.clear()
-    ElMessage.success('终端已清除')
+    ElMessage.success('Terminal cleared')
   } else {
-    ElMessage.warning('终端未启动')
+    ElMessage.warning('Terminal not running')
   }
 }
 
-// 处理右键菜单
+// Context menu
 const handleContextMenu = (event) => {
   event.preventDefault()
   
-  // 设置菜单位置
   contextMenuStyle.value = {
     position: 'fixed',
     left: event.clientX + 'px',
@@ -287,20 +283,18 @@ const handleContextMenu = (event) => {
   
   contextMenuVisible.value = true
   
-  // 点击其他地方关闭菜单
   nextTick(() => {
     document.addEventListener('click', hideContextMenu, { once: true })
   })
 }
 
-// 隐藏右键菜单
+// Hide context menu
 const hideContextMenu = () => {
   contextMenuVisible.value = false
 }
 
-// 处理右键菜单命令
+// Handle context menu command
 const handleContextMenuCommand = (command) => {
-  // 隐藏菜单
   contextMenuVisible.value = false
   
   switch (command) {
@@ -325,26 +319,26 @@ const handleContextMenuCommand = (command) => {
   }
 }
 
-// 复制选中文本
+// Copy selected text
 const copySelectedText = () => {
   if (terminal && terminal.hasSelection()) {
     const selectedText = terminal.getSelection()
     if (selectedText) {
       navigator.clipboard.writeText(selectedText).then(() => {
-        ElMessage.success('已复制到剪贴板')
+        ElMessage.success('Copied to clipboard')
       }).catch(() => {
-        ElMessage.error('复制失败')
+        ElMessage.error('Failed to copy')
       })
     }
   } else {
-    ElMessage.warning('请先选择要复制的文本')
+    ElMessage.warning('Please select text to copy first')
   }
 }
 
-// 粘贴文本
+// Paste text
 const pasteText = async () => {
   if (!terminal || !writer) {
-    ElMessage.warning('终端未启动')
+    ElMessage.warning('Terminal not running')
     return
   }
   
@@ -353,36 +347,36 @@ const pasteText = async () => {
     if (text) {
       const buffer = encodeUtf8(text)
       await writer.write(buffer)
-      ElMessage.success('已粘贴文本')
+      ElMessage.success('Text pasted')
     }
   } catch (error) {
-    ElMessage.error('粘贴失败，请检查剪贴板权限')
+    ElMessage.error('Paste failed. Please check clipboard permissions.')
   }
 }
 
-// 全选文本
+// Select all text
 const selectAllText = () => {
   if (terminal) {
     terminal.selectAll()
-    ElMessage.success('已全选文本')
+    ElMessage.success('All text selected')
   } else {
-    ElMessage.warning('终端未启动')
+    ElMessage.warning('Terminal not running')
   }
 }
 
-// 更新字体大小
+// Update font size
 const updateFontSize = (size) => {
   fontSize.value = size
 }
 
-// 应用字体大小
+// Apply font size
 const applyFontSize = () => {
   if (terminal) {
     terminal.options.fontSize = fontSize.value
     if (fitAddon) {
       fitAddon.fit()
     }
-    ElMessage.success('字体大小已更新')
+    ElMessage.success('Font size updated')
   }
   fontSizeDialogVisible.value = false
 }

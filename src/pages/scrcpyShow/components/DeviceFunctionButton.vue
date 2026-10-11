@@ -5,70 +5,70 @@
       style="border-radius: 10px; width: 50px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
     <el-space direction="vertical" style="z-index: 999;" class="my-2">
       <div class="icon-container" @click="handleScreenshot">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'截屏'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Screenshot'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <Picture />
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleRecord">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'录像'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Record Screen'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <VideoCamera/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleFullscreen">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="props.isFullscreen ? '退出全屏' : '进入全屏'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="props.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <FullScreen/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleVisibility">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'显示/隐藏'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Coordinates'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <View/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleRotate">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'旋转屏幕'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Rotate'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <RefreshRight/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleNotifications">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'通知栏'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Notifications'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <Bell/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleFocus">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'焦点'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Focus'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <Aim/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleVolumeUp">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'音量+'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Volume +'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <Plus/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handleVolumeDown">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'音量-'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Volume -'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <Minus/>
           </el-icon>
         </el-tooltip>
       </div>
       <div class="icon-container" @click="handlePower">
-        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'电源'" placement="left">
+        <el-tooltip :effect="props.isFullscreen ? 'dark' : 'dark'" :content="'Power'" placement="left">
           <el-icon :size="20" :color="props.isFullscreen ? '#ffffff' : '#303133'">
             <SwitchButton/>
           </el-icon>
@@ -138,56 +138,50 @@ const handleScreenshot = async () => {
   try {
     const adb = getAdbInstance();
     if (!adb) {
-      ElMessage.error('ADB 实例未初始化');
+      ElMessage.error('ADB instance not initialized');
       return;
     }
     
-    ElMessage.info('正在截取屏幕...');
+    ElMessage.info('Capturing screenshot...');
     
-    // 使用 framebuffer API 获取截图
+    // Use framebuffer API to capture screenshot
     const screenshot = await adb.framebuffer();
     
-    // 创建 canvas 元素
+    // Create canvas
     const canvas = document.createElement('canvas');
     canvas.width = screenshot.width;
     canvas.height = screenshot.height;
     
-    // 获取 canvas 上下文
     const context = canvas.getContext('2d');
     
-    // 创建 ImageData 对象
     const imageData = new ImageData(
       new Uint8ClampedArray(screenshot.data),
       screenshot.width,
       screenshot.height
     );
     
-    // 将 ImageData 放入 canvas
     context.putImageData(imageData, 0, 0);
     
-    // 将 canvas 转换为 PNG 数据 URL
     const url = canvas.toDataURL('image/png');
     
-    // 创建下载链接
     const a = document.createElement('a');
     a.href = url;
     a.download = `screenshot_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
     
-    // 触发下载
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     
-    ElMessage.success('截图已保存');
+    ElMessage.success('Screenshot saved');
   } catch (error) {
-    console.error('截图失败:', error);
+    console.error('Screenshot error:', error);
     
     if (error.name === 'AdbFrameBufferForbiddenError') {
-      ElMessage.error('截图失败: 当前屏幕内容受保护，无法截图');
+      ElMessage.error('Screenshot failed: Screen content is protected (FLAG_SECURE)');
     } else if (error.name === 'AdbFrameBufferUnsupportedVersionError') {
-      ElMessage.error('截图失败: 设备不支持的截图版本');
+      ElMessage.error('Screenshot failed: Unsupported framebuffer version');
     } else {
-      ElMessage.error(`截图失败: ${error.message || '未知错误'}`);
+      ElMessage.error(`Screenshot failed: ${error.message || 'Unknown error'}`);
     }
   }
 };

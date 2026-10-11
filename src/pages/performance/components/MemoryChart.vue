@@ -32,23 +32,23 @@ const chartData = computed(() => {
   for (let i = startIdx; i < timeStamps.length; i++) {
     const time = timeStamps[i];
 
-    // 添加总内存数据
+    // Add total memory data
     if (memoryTotalHistory[i] !== undefined) {
       data.push({
         time,
         value: memoryTotalHistory[i],
-        type: '总内存'
+        type: 'Total Memory'
       });
     }
 
-    // 添加详细内存数据
+    // Add detailed memory data
     const detail = memoryDetailHistory[i];
     if (detail) {
-      if (detail.javaHeap !== undefined) data.push({ time, value: detail.javaHeap, type: 'Java堆' });
-      if (detail.nativeHeap !== undefined) data.push({ time, value: detail.nativeHeap, type: '原生堆' });
-      if (detail.code !== undefined) data.push({ time, value: detail.code, type: '代码' });
-      if (detail.stack !== undefined) data.push({ time, value: detail.stack, type: '栈' });
-      if (detail.graphics !== undefined) data.push({ time, value: detail.graphics, type: '图形' });
+      if (detail.javaHeap !== undefined) data.push({ time, value: detail.javaHeap, type: 'Java Heap' });
+      if (detail.nativeHeap !== undefined) data.push({ time, value: detail.nativeHeap, type: 'Native Heap' });
+      if (detail.code !== undefined) data.push({ time, value: detail.code, type: 'Code' });
+      if (detail.stack !== undefined) data.push({ time, value: detail.stack, type: 'Stack' });
+      if (detail.graphics !== undefined) data.push({ time, value: detail.graphics, type: 'Graphics' });
     }
   }
   return data;

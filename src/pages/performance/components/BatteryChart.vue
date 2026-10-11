@@ -57,7 +57,7 @@ const updateChartData = () => {
     data.push({
       time: timeValue,
       value: levelValue !== null && levelValue !== undefined ? levelValue : 0,
-      type: '电池电量',
+      type: 'Battery Level',
       rawValue: levelValue
     });
   }

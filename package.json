@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "postinstall": "fetch-scrcpy-server 3.2"
+    "postinstall": "fetch-scrcpy-server 3.3.3"
   },
   "dependencies": {
     "@antv/g2": "^5.3.3",

@@ -4,7 +4,7 @@
       <div class="d-flex align-center flex-grow-1">
         <el-select
           v-model="selectedPriority"
-          placeholder="日志级别"
+          placeholder="Priority"
           style="width: 150px"
         >
           <el-option
@@ -16,13 +16,13 @@
         </el-select>
         <el-input
           v-model="tagFilter"
-          placeholder="标签过滤"
+          placeholder="Filter Tag"
           class="mx-3"
           style="width: 150px"
         />
         <el-input
           v-model="searchQuery"
-          placeholder="搜索日志"
+          placeholder="Search logs"
           class="flex-grow-1"
           style="max-width: 450px"
         />
@@ -36,7 +36,7 @@
             <VideoPlay v-if="!isRunning" />
             <VideoPause v-else />
           </el-icon>
-          {{ isRunning ? '停止' : '开始' }}
+          {{ isRunning ? 'Stop' : 'Start' }}
         </el-button>
         <el-button
           type="info"
@@ -44,7 +44,7 @@
           @click="clearLogs"
         >
           <el-icon class="mx-1"><Delete /></el-icon>
-          清除
+          Clear
         </el-button>
         <el-button
           :disabled="filteredLogs.length === 0"
@@ -53,17 +53,17 @@
           @click="exportLogs"
         >
           <el-icon class="mx-1"><Download /></el-icon>
-          导出
+          Export
         </el-button>
       </div>
     </div>
 
     <div class="log-container">
       <div class="log-header">
-        <div class="log-cell time">时间</div>
-        <div class="log-cell priority">级别</div>
-        <div class="log-cell tag">标签</div>
-        <div class="log-cell message">消息</div>
+        <div class="log-cell time">Time</div>
+        <div class="log-cell priority">Level</div>
+        <div class="log-cell tag">Tag</div>
+        <div class="log-cell message">Message</div>
       </div>
       <el-scrollbar ref="scrollbarRef" height="calc(100vh - 240px)" @scroll="handleScroll">
         <div v-if="filteredLogs.length > 0" class="log-entries">
@@ -99,7 +99,7 @@
           <div class="virtual-padding-bottom" :style="{ height: `${bottomPadding}px` }"></div>
         </div>
         <div v-else class="no-logs-message">
-          {{ isRunning ? '正在等待日志...' : '没有日志可显示' }}
+          {{ isRunning ? 'Waiting for logs...' : 'No logs to display' }}
         </div>
       </el-scrollbar>
       <div class="auto-scroll-indicator" v-if="!isNearBottom && isRunning">
@@ -153,14 +153,14 @@ let lastUpdateTime = 0
 const UPDATE_INTERVAL = 200 // 更新间隔
 let logIdCounter = 0 // 用于生成唯一ID
 
-// 优先级选项
+// Priority options
 const priorityOptions = [
-  { label: '详细 (V)', value: AndroidLogPriority.Verbose },
-  { label: '调试 (D)', value: AndroidLogPriority.Debug },
-  { label: '信息 (I)', value: AndroidLogPriority.Info },
-  { label: '警告 (W)', value: AndroidLogPriority.Warn },
-  { label: '错误 (E)', value: AndroidLogPriority.Error },
-  { label: '致命 (F)', value: AndroidLogPriority.Fatal }
+  { label: 'Verbose (V)', value: AndroidLogPriority.Verbose },
+  { label: 'Debug (D)', value: AndroidLogPriority.Debug },
+  { label: 'Info (I)', value: AndroidLogPriority.Info },
+  { label: 'Warn (W)', value: AndroidLogPriority.Warn },
+  { label: 'Error (E)', value: AndroidLogPriority.Error },
+  { label: 'Fatal (F)', value: AndroidLogPriority.Fatal }
 ]
 
 // 使用计算属性来过滤日志
@@ -226,7 +226,7 @@ const startLogcat = async () => {
   try {
     const adb = getAdbInstance()
     if (!adb) {
-      ElMessage.error('请先连接设备')
+      ElMessage.error('Please connect a device first')
       return
     }
     
@@ -264,19 +264,19 @@ const startLogcat = async () => {
           }
         } catch (err) {
           if (!shouldStopLogcat) {
-            console.error('读取 logcat 输出时出错:', err)
+            console.error('Error reading logcat output:', err)
           }
           break
         }
       }
     } catch (error) {
-      console.error('启动 Logcat 流时出错:', error)
-      ElMessage.error('启动 Logcat 失败，请检查设备连接状态')
+      console.error('Error starting logcat stream:', error)
+      ElMessage.error('Failed to start Logcat. Please check device connection.')
       isRunning.value = false
     }
   } catch (error) {
-    console.error('创建 Logcat 实例时出错:', error)
-    ElMessage.error('启动 Logcat 失败，请检查设备连接状态')
+    console.error('Error creating Logcat instance:', error)
+    ElMessage.error('Failed to start Logcat. Please check device connection.')
     isRunning.value = false
   }
 }
@@ -372,10 +372,10 @@ const clearLogs = async () => {
     logs.value = []
     logQueue.length = 0
     logIdCounter = 0
-    ElMessage.success('日志已清除')
+    ElMessage.success('Logs cleared')
   } catch (error) {
-    console.error('清除日志失败，请重试', error)
-    ElMessage.error('清除日志失败，请重试')
+    console.error('Failed to clear logs:', error)
+    ElMessage.error('Failed to clear logs, please try again')
   }
 }
 
@@ -393,13 +393,13 @@ const exportLogs = () => {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
-  ElMessage.success('日志导出成功')
+  ElMessage.success('Logs exported successfully')
 }
 
-// 格式化时间
+// Format time
 const formatTime = (log) => {
   const date = new Date(log.seconds * 1000 + log.nanoseconds / 1000000)
-  return date.toLocaleTimeString('zh-CN', { hour12: false }) + '.' + 
+  return date.toLocaleTimeString('en-US', { hour12: false }) + '.' + 
     String(Math.floor(log.nanoseconds / 1000000)).padStart(3, '0')
 }
 
@@ -465,7 +465,7 @@ onMounted(() => {
   // 检查设备连接状态
   const adb = getAdbInstance()
   if (!adb) {
-    ElMessage.warning('请先连接设备才能查看日志')
+    ElMessage.warning('Please connect a device first to view logs')
   }
   
   // 初始化虚拟滚动

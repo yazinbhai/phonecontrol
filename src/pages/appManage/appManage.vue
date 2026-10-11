@@ -2,14 +2,14 @@
   <div class="mx-4">
     <div class="d-flex justify-content-between">
       <el-space>
-        <el-input v-model="searchPackage" :style="{width: width - 180 + 'px'}" placeholder="请输入名称或包名进行搜索">
+        <el-input v-model="searchPackage" :style="{width: width - 180 + 'px'}" placeholder="Search by app name or package name">
           <template #prefix>
             <span>🔍</span>
           </template>
         </el-input>
       </el-space>
       <el-space>
-        <el-button type="primary" @click="getAppIcon">初始化</el-button>
+        <el-button type="primary" @click="getAppIcon">Refresh</el-button>
       </el-space>
     </div>
 
@@ -17,19 +17,19 @@
     <el-space class="mt-4" :size="40">
       <el-space style="cursor: pointer" @click="uninstallApp">
         <SvgIcon icon="packageDelete"/>
-        <span>卸载</span>
+        <span>Uninstall</span>
       </el-space>
       <el-space style="cursor: pointer" @click="backupApp">
         <SvgIcon icon="packageSave"/>
-        <span>备份</span>
+        <span>Backup</span>
       </el-space>
       <el-space style="cursor: pointer" @click="exportApk">
         <SvgIcon icon="packageExport"/>
-        <span>导出Apk</span>
+        <span>Export APK</span>
       </el-space>
       <el-space style="cursor: pointer" @click="showAppDetails">
         <SvgIcon icon="packageInfo"/>
-        <span>详细信息</span>
+        <span>Details</span>
       </el-space>
     </el-space>
     <div class="card mt-4">
@@ -51,7 +51,7 @@
                 <CircleCheckFilled/>
               </el-icon>
 
-              <span>名称</span>
+              <span>Name</span>
               <el-icon v-if="sortType === 'desc'" :size="18" style="cursor: pointer" @click="sortFileList('asc')">
                 <Bottom/>
               </el-icon>
@@ -61,12 +61,12 @@
             </el-space>
           </el-col>
           <el-col :span="14">
-            <span style="margin-right: 45px">来源</span>
-            <span>大小</span>
+            <span style="margin-right: 45px">Source</span>
+            <span>Size</span>
             <div style="margin-left: 160px; margin-top: -24px" class="d-flex justify-content-between">
-              <span>安装时间</span>
-              <span>最后使用时间</span>
-              <span style="margin-right: 15px">操作</span>
+              <span>Installed</span>
+              <span>Last Used</span>
+              <span style="margin-right: 15px">Actions</span>
             </div>
           </el-col>
         </el-row>
@@ -124,24 +124,24 @@
                     <template #default>
                       <el-space class="operationItemCss" @click="rightDownloadFile(appItem.name, appItem.numType)">
                         <SvgIcon style="margin-left: 9px" icon="DownloadIcon"/>
-                        <span class="mx-2">在设备上启动</span>
+                        <span class="mx-2">Launch on Device</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="renameFile(appItem.name)">
                         <SvgIcon style="margin-left: 9px" icon="RenameIcon"/>
-                        <span class="mx-2">卸载</span>
+                        <span class="mx-2">Uninstall</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="deleteFileSingle(appItem.name, appItem.numType)">
                         <SvgIcon style="margin-left: 9px" icon="DeleteIcon"/>
-                        <span class="mx-2">备份</span>
+                        <span class="mx-2">Backup</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="getFileDetail(appItem.name)">
                         <SvgIcon style="margin-left: 12px" icon="InfoIcon"
                                  :style="{ width:18 + 'px', height: 18 + 'px'}"/>
-                        <span style="margin-left: 9px">导出Apk</span>
+                        <span style="margin-left: 9px">Export APK</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="deleteFileSingle(appItem.name, appItem.numType)">
                         <SvgIcon style="margin-left: 9px" icon="DeleteIcon"/>
-                        <span class="mx-2">详细信息</span>
+                        <span class="mx-2">Details</span>
                       </el-space>
                     </template>
                   </el-popover>
@@ -149,7 +149,7 @@
               </el-col>
             </el-row>
           </div>
-          <el-empty v-else description="暂无文件"/>
+          <el-empty v-else description="No apps found"/>
         </div>
       </el-scrollbar>
     </div>
@@ -189,21 +189,21 @@ const handleSelectAll = () => {
   }
 }
 
-// 应用操作功能
+// App actions
 const uninstallApp = () => {
-  ElMessage.info('卸载功能开发中')
+  ElMessage.info('Uninstall feature under development')
 }
 
 const backupApp = () => {
-  ElMessage.info('备份功能开发中')
+  ElMessage.info('Backup feature under development')
 }
 
 const exportApk = () => {
-  ElMessage.info('导出APK功能开发中')
+  ElMessage.info('Export APK feature under development')
 }
 
 const showAppDetails = () => {
-  ElMessage.info('查看应用详情功能开发中')
+  ElMessage.info('App details feature under development')
 }
 
 const testReadAppInfo = async () => {
@@ -339,11 +339,11 @@ const testAppInfoList = async () => {
         // 将item的内容合并到item2
         Object.assign(item2, item);
         if (item2.sourceDir.startsWith('/data/app/')) {
-          item2.appSource = '本地应用';
+          item2.appSource = 'User App';
         } else if (item.sourceDir.startsWith('/system')) {
-          item2.appSource = '系统应用';
+          item2.appSource = 'System App';
         } else {
-          item2.appSource = '未知';
+          item2.appSource = 'Unknown';
         }
       }
     })

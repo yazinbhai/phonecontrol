@@ -1,10 +1,10 @@
 <template>
   <div class="scrcpy-container">
-    <div class="content-wrapper" ref="fullScreenContainer">
+    <div :class="['content-wrapper', `fit-${fitMode}`]" ref="fullScreenContainer">
       <RenderContainer
         ref="renderRef"
         :classes="classes"
-        :container-style="containerStyle"
+        :container-style="currentContainerStyle"
         @pointerdown="handlePointerDown"
         @pointermove="handlePointerMove"
         @pointerup="handlePointerUp"
@@ -12,9 +12,10 @@
         @pointerleave="handlePointerLeave"
         @contextmenu="handleContextMenu"
         @wheel="handleWheel"
+        @dblclick="toggleFullscreen"
       />
 
-      <!-- 浮动坐标窗口 -->
+      <!-- Floating Coordinate Window -->
       <FloatingCoordinateWindow
         :visible="isCoordinateTrackingActive && isMouseInScreen"
         :mouse-x="currentMouseX"
@@ -24,12 +25,12 @@
         :device-width="getDeviceRealWidth()"
         :device-height="getDeviceRealHeight()"
       />
-      <!-- 非全屏模式下的右侧工具栏 -->
+      <!-- Non-fullscreen Side Toolbar -->
       <transition name="sidebar-slide" appear>
         <div class="side-toolbar" v-if="!isLoading && !hasError && !isFullscreen && isSidebarVisible">
-        <!-- 侧边栏顶部的收缩按钮 -->
+        <!-- Toolbar Collapse Button -->
         <div class="sidebar-toggle-top" @click="toggleSidebar">
-          <el-tooltip content="收起操作栏" placement="left">
+          <el-tooltip content="Collapse Toolbar" placement="left">
             <el-icon :size="14">
               <ArrowDown />
             </el-icon>
@@ -47,7 +48,7 @@
         />
         </div>
       </transition>
-      <!-- 全屏模式下的左侧工具栏 -->
+      <!-- Fullscreen Side Toolbar -->
       <div class="fullscreen-side-controls" v-if="isFullscreen && !isLoading && !hasError">
         <DeviceFunctionButton 
           :press-key="pressKey"
@@ -60,12 +61,15 @@
           @toggle-notifications="toggleNotifications"
         />
       </div>
-      <!-- 全屏模式下的底部控制栏 -->
+      <!-- Fullscreen Bottom Controls -->
       <div class="fullscreen-bottom-controls" v-if="isFullscreen && !isLoading && !hasError">
         <DeviceOperateButton
           :press-key="pressKey"
-          :container-width="300"
+          :container-width="420"
           :is-fullscreen="isFullscreen"
+          :fit-mode="fitMode"
+          @toggle-fullscreen="toggleFullscreen"
+          @toggle-fit-mode="toggleFitMode"
           class="mt-1"
         />
       </div>
@@ -77,10 +81,10 @@
     />
     <div v-if="hasError" class="error-container">
       <div class="error-content">
-        <h3>连接错误</h3>
+        <h3>Connection Error</h3>
         <p>{{ connectionError }}</p>
         <button @click="retryConnection" class="retry-button">
-          重试连接
+          Retry Connection
         </button>
       </div>
     </div>
@@ -89,11 +93,14 @@
         :press-key="pressKey"
         :container-width="calcWidthAndHeight[0]"
         :is-fullscreen="isFullscreen"
+        :fit-mode="fitMode"
+        @toggle-fullscreen="toggleFullscreen"
+        @toggle-fit-mode="toggleFitMode"
         class="mt-1"
       />
-      <!-- 侧边栏展开按钮 -->
+      <!-- Sidebar Expand Button -->
       <div class="sidebar-expand-button" v-if="!isSidebarVisible" @click="toggleSidebar">
-        <el-tooltip content="显示操作栏" placement="top">
+        <el-tooltip content="Show Toolbar" placement="top">
           <div class="expand-btn">
             <el-icon :size="14">
               <ArrowUp />
@@ -124,12 +131,12 @@ import { ElMessage } from 'element-plus';
 
 const renderRef = ref();
 const isLoading = ref(true);
-const loadingMessage = ref('正在连接设备...');
-const loadingSubMessage = ref('请稍等片刻');
+const loadingMessage = ref('Connecting to device...');
+const loadingSubMessage = ref('Please wait a moment');
 const fullScreenContainer = ref(null);
 const isFullscreen = ref(false);
-// 添加侧边栏显示状态
-const isSidebarVisible = ref(false);
+// Sidebar visibility state - visible by default
+const isSidebarVisible = ref(true);
 // 添加坐标跟踪状态
 const isCoordinateTrackingActive = ref(false);
 const isMouseInScreen = ref(false); // 鼠标是否在屏幕内
@@ -172,7 +179,29 @@ const {
   clientPositionToDevicePosition
 } = useScrcpy();
 
-// 不再需要这些变量，使用 getDeviceRealWidth() 和 getDeviceRealHeight() 函数
+// Dynamic container style based on fullscreen mode
+const currentContainerStyle = computed(() => {
+  if (isFullscreen.value) {
+    return {
+      width: '100vw',
+      height: '100vh',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      margin: '0',
+      padding: '0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#000000',
+      borderRadius: '0',
+      overflow: 'hidden',
+      transform: 'none',
+      boxShadow: 'none',
+      border: 'none',
+    };
+  }
+  return containerStyle.value;
+});
 
 // 自定义鼠标移动处理函数，包装原始函数并添加坐标跟踪功能
 const handlePointerMove = async (event) => {
@@ -269,14 +298,14 @@ const copyCoordinatesToClipboard = async () => {
     await navigator.clipboard.writeText(relativeCoords);
 
     ElMessage.success({
-      message: `✅ 相对坐标已复制到剪贴板: (${relativeCoords})`,
+      message: `✅ Coordinates copied to clipboard: (${relativeCoords})`,
       duration: 3000,
       showClose: true
     });
   } catch (error) {
-    console.error('复制到剪贴板失败:', error);
+    console.error('Failed to copy to clipboard:', error);
 
-    // 提供备用复制方法
+    // Fallback copy method
     try {
       const deviceWidth = getDeviceRealWidth();
       const deviceHeight = getDeviceRealHeight();
@@ -284,7 +313,6 @@ const copyCoordinatesToClipboard = async () => {
       const relativeY = deviceHeight > 0 ? currentAbsoluteY.value / deviceHeight : 0;
       const relativeCoords = `${relativeX.toFixed(3)}, ${relativeY.toFixed(3)}`;
 
-      // 尝试使用旧的 execCommand 方法
       const textArea = document.createElement('textarea');
       textArea.value = relativeCoords;
       document.body.appendChild(textArea);
@@ -293,13 +321,13 @@ const copyCoordinatesToClipboard = async () => {
       document.body.removeChild(textArea);
 
       ElMessage.success({
-        message: `✅ 相对坐标已复制到剪贴板: (${relativeCoords})`,
+        message: `✅ Coordinates copied to clipboard: (${relativeCoords})`,
         duration: 3000,
         showClose: true
       });
     } catch (fallbackError) {
       ElMessage.error({
-        message: '❌ 复制失败，请手动复制坐标',
+        message: '❌ Failed to copy coordinates to clipboard',
         duration: 3000,
         showClose: true
       });
@@ -324,48 +352,73 @@ const toggleSidebar = () => {
   console.log('切换侧边栏显示状态:', isSidebarVisible.value);
 };
 
-// 右侧工具栏功能
+// Toggle Fullscreen mode
 const toggleFullscreen = () => {
-  console.log('切换全屏模式');
   if (!document.fullscreenElement) {
-    fullScreenContainer.value.requestFullscreen().catch((err) => {
-      console.error(`无法进入全屏模式: ${err.message}`);
-    });
-    const canvas = renderRef.value.renderContainer.querySelector('canvas');
-    if (canvas) {
-      // 设置全屏样式
-      canvas.style.height = 'auto';
-      canvas.style.width = 'auto';
-      canvas.style.maxHeight = '95vh';
-      canvas.style.maxWidth = '95vw';
-      canvas.style.margin = '0 auto';
-      canvas.style.display = 'block';
-      canvas.style.borderRadius = '20px';
-      canvas.style.boxShadow = '0 0 30px rgba(0, 0, 0, 0.5)';
-      canvas.style.objectFit = 'contain';
-      
-      // 延迟计算侧边栏位置，确保canvas已完全渲染
-      setTimeout(() => {
-        updateSidebarPosition();
-      }, 100);
+    if (fullScreenContainer.value?.requestFullscreen) {
+      fullScreenContainer.value.requestFullscreen().catch((err) => {
+        console.error(`Failed to enter fullscreen: ${err.message}`);
+      });
     }
   } else {
-    document.exitFullscreen();
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch((err) => {
+        console.error(`Failed to exit fullscreen: ${err.message}`);
+      });
+    }
   }
-  isFullscreen.value = !isFullscreen.value;
 };
 
-// 更新侧边栏位置的函数
+// Screen Fit Mode: 'fill' (stretch - removes black bars), 'cover' (zoom - removes black bars), 'contain' (original ratio)
+const fitMode = ref('fill');
+
+const toggleFitMode = () => {
+  if (fitMode.value === 'fill') {
+    fitMode.value = 'cover';
+    ElMessage.info({
+      message: '📺 Aspect Ratio: Zoom to Fill (Cover - no black bars)',
+      duration: 2500,
+      showClose: true
+    });
+  } else if (fitMode.value === 'cover') {
+    fitMode.value = 'contain';
+    ElMessage.info({
+      message: '📺 Aspect Ratio: Original (Contain - with black bars)',
+      duration: 2500,
+      showClose: true
+    });
+  } else {
+    fitMode.value = 'fill';
+    ElMessage.success({
+      message: '📺 Aspect Ratio: Stretch to Fill (No black bars at top/bottom)',
+      duration: 2500,
+      showClose: true
+    });
+  }
+  
+  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
+  if (canvas && isFullscreen.value) {
+    canvas.style.objectFit = fitMode.value;
+  }
+};
+
+// Update sidebar position in fullscreen mode
 const updateSidebarPosition = () => {
   const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
   const sidebar = document.querySelector('.fullscreen-side-controls');
   
   if (canvas && sidebar) {
     const canvasRect = canvas.getBoundingClientRect();
-    const rightPosition = canvasRect.right + 20; // 屏幕显示区域右侧20px
+    const rightPosition = canvasRect.right + 16;
     
-    sidebar.style.left = `${rightPosition}px`;
-    sidebar.style.right = 'auto'; // 取消right定位
+    // Only adjust left position if it stays inside the viewport
+    if (rightPosition + 60 < window.innerWidth) {
+      sidebar.style.left = `${rightPosition}px`;
+      sidebar.style.right = 'auto';
+    } else {
+      sidebar.style.left = 'auto';
+      sidebar.style.right = '16px';
+    }
   }
 };
 
@@ -457,11 +510,11 @@ const toggleNotifications = async () => {
 // 计算是否有错误
 const hasError = computed(() => connectionStatus.value === 'error');
 
-// 重试连接
+// Reconnect
 const retryConnection = async () => {
   isLoading.value = true;
-  loadingMessage.value = '正在重新连接...';
-  loadingSubMessage.value = '请稍等片刻';
+  loadingMessage.value = 'Reconnecting...';
+  loadingSubMessage.value = 'Please wait a moment';
   
   try {
     await destroyClient();
@@ -469,27 +522,23 @@ const retryConnection = async () => {
       await scrcpyStart(renderRef.value);
     }, 1000);
   } catch (error) {
-    console.error("重试连接失败:", error);
+    console.error("Retry connection failed:", error);
   }
 };
 
-// 监听 width 和 height 的变化
+// Listen for window changes
 watch([windowWidth, windowHeight], ([newWidth, newHeight]) => {
-  console.log("监听到窗口变化了")
   if (width.value !== 0 || height.value !== 0) {
-    console.log("渲染完成后才能触发")
-    console.log("width or height changed", newWidth, newHeight)
     changeStyle()
   }
 });
 
-// 监听屏幕渲染状态
+// Listen for screen render state
 watch([width, height], ([newWidth, newHeight]) => {
   if (newWidth > 0 && newHeight > 0) {
-    // 当宽高都有值时，说明屏幕已经渲染出来了
     setTimeout(() => {
-      loadingMessage.value = '设备连接成功';
-      loadingSubMessage.value = '准备显示屏幕...';
+      loadingMessage.value = 'Device connected successfully';
+      loadingSubMessage.value = 'Preparing screen display...';
       
       setTimeout(() => {
         isLoading.value = false;
@@ -508,18 +557,16 @@ watch(connectionStatus, (newStatus) => {
       break;
     case 'connecting':
       isLoading.value = true;
-      loadingMessage.value = '正在连接设备...';
-      loadingSubMessage.value = '请稍等片刻';
+      loadingMessage.value = 'Connecting to device...';
+      loadingSubMessage.value = 'Please wait a moment';
       break;
     case 'connected':
-      // 连接成功，屏幕会通过宽高变化监听器隐藏加载界面
-      loadingMessage.value = '设备连接成功';
-      loadingSubMessage.value = '正在加载屏幕...';
+      loadingMessage.value = 'Device connected successfully';
+      loadingSubMessage.value = 'Loading display stream...';
       break;
     case 'error':
-      loadingMessage.value = '连接发生错误';
+      loadingMessage.value = 'Connection error';
       loadingSubMessage.value = connectionError;
-      // 短暂显示错误信息后隐藏加载动画，显示错误界面
       setTimeout(() => {
         isLoading.value = false;
       }, 1500);
@@ -528,47 +575,73 @@ watch(connectionStatus, (newStatus) => {
 });
 
 
-onBeforeUnmount(() => {
-  document.removeEventListener('fullscreenchange', handleFullscreenChange);
-});
-
-// 处理全屏状态变化
+// Handle Fullscreen state changes
 const handleFullscreenChange = () => {
   isFullscreen.value = !!document.fullscreenElement;
+  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
   
-  // 如果退出全屏，恢复原始样式
-  if (!isFullscreen.value) {
-    const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
+  if (isFullscreen.value) {
+    if (canvas) {
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.maxWidth = '100vw';
+      canvas.style.maxHeight = '100vh';
+      canvas.style.objectFit = fitMode.value;
+      canvas.style.borderRadius = '0px';
+      canvas.style.boxShadow = 'none';
+      canvas.style.border = 'none';
+      canvas.style.margin = '0 auto';
+      canvas.style.display = 'block';
+    }
+    setTimeout(() => {
+      updateSidebarPosition();
+    }, 150);
+  } else {
+    // Restore normal styles when exiting fullscreen
     if (canvas) {
       canvas.style.width = '';
       canvas.style.height = '';
+      canvas.style.maxWidth = '';
       canvas.style.maxHeight = '';
+      canvas.style.objectFit = '';
+      canvas.style.borderRadius = '';
+      canvas.style.boxShadow = '';
+      canvas.style.border = '';
       canvas.style.margin = '';
-      changeStyle(); // 恢复到原始计算的样式
     }
+    changeStyle(); // Restore calculated normal style
     
-    // 重置侧边栏样式
     const sidebar = document.querySelector('.fullscreen-side-controls');
     if (sidebar) {
       sidebar.style.left = '';
       sidebar.style.right = '';
     }
-  } else {
-    // 进入全屏时也需要更新侧边栏位置
-    setTimeout(() => {
-      updateSidebarPosition();
-    }, 200);
+  }
+};
+
+// Global keyboard shortcut ('F' for fullscreen, 'S' for screen fit mode)
+const handleGlobalKeydown = (e) => {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+  if (e.key === 'f' || e.key === 'F') {
+    e.preventDefault();
+    toggleFullscreen();
+  } else if ((e.key === 's' || e.key === 'S') && isFullscreen.value) {
+    e.preventDefault();
+    toggleFitMode();
   }
 };
 
 onMounted(async () => {
-  loadingMessage.value = '正在初始化连接...';
+  loadingMessage.value = 'Initializing connection...';
   await scrcpyStart(renderRef.value);
   
-  // 添加全屏状态变化监听
+  // Listen for fullscreen state changes
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   
-  // 添加窗口大小变化监听，用于重新计算侧边栏位置
+  // Listen for 'F' keyboard shortcut
+  window.addEventListener('keydown', handleGlobalKeydown);
+  
+  // Window resize listener
   window.addEventListener('resize', () => {
     if (isFullscreen.value) {
       setTimeout(() => {
@@ -579,11 +652,11 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(async () => {
-  console.log("销毁 scrcpy");
+  console.log("Destroying scrcpy");
   try {
-    // 移除所有事件监听器
     window.removeEventListener('keydown', handleKeyEvent);
     window.removeEventListener('keyup', handleKeyEvent);
+    window.removeEventListener('keydown', handleGlobalKeydown);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     window.removeEventListener('resize', updateSidebarPosition);
     
@@ -809,80 +882,116 @@ defineExpose({
   }
 }
 
-:deep(.video) {
+/* Non-fullscreen styling for video container */
+.content-wrapper:not(:fullscreen) :deep(.video) {
   border-radius: 20px !important;
 }
 
-/* 全屏模式下的样式 */
-:fullscreen .content-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100vw;
-  height: 100vh;
-  background-color: #303133;
+/* Fullscreen mode container styling */
+.content-wrapper:fullscreen,
+.content-wrapper:-webkit-full-screen,
+.content-wrapper:-moz-full-screen {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  background-color: #000000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
-:fullscreen .video {
-  max-height: 95vh;
-  max-width: 95vw;
-  border-radius: 20px !important;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-  margin: -90px auto 0;
+/* Fullscreen video and canvas: edge-to-edge true fullscreen */
+.content-wrapper:fullscreen :deep(.video),
+.content-wrapper:fullscreen :deep(canvas),
+.content-wrapper:-webkit-full-screen :deep(.video),
+.content-wrapper:-webkit-full-screen :deep(canvas),
+:fullscreen :deep(.video),
+:fullscreen :deep(canvas) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0 auto !important;
+  display: block !important;
+  transform: none !important;
 }
 
+/* Default / Fill mode: Stretch to eliminate top & bottom black bars */
+.content-wrapper.fit-fill:fullscreen :deep(.video),
+.content-wrapper.fit-fill:fullscreen :deep(canvas),
+.content-wrapper.fit-fill:-webkit-full-screen :deep(.video),
+.content-wrapper.fit-fill:-webkit-full-screen :deep(canvas) {
+  object-fit: fill !important;
+}
+
+/* Cover mode: Zoom to fill top & bottom without stretching */
+.content-wrapper.fit-cover:fullscreen :deep(.video),
+.content-wrapper.fit-cover:fullscreen :deep(canvas),
+.content-wrapper.fit-cover:-webkit-full-screen :deep(.video),
+.content-wrapper.fit-cover:-webkit-full-screen :deep(canvas) {
+  object-fit: cover !important;
+}
+
+/* Contain mode: Original ratio with top & bottom black bars */
+.content-wrapper.fit-contain:fullscreen :deep(.video),
+.content-wrapper.fit-contain:fullscreen :deep(canvas),
+.content-wrapper.fit-contain:-webkit-full-screen :deep(.video),
+.content-wrapper.fit-contain:-webkit-full-screen :deep(canvas) {
+  object-fit: contain !important;
+}
+
+/* Floating bottom controls in fullscreen mode */
 .fullscreen-bottom-controls {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
-  width: 320px;
-  background-color: rgba(40, 40, 40, 0.95);
+  z-index: 9999;
+  width: 420px;
+  background-color: rgba(30, 30, 30, 0.75);
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  padding: 8px 10px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(80, 80, 80, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  padding: 6px 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0.25;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
 }
 
-/* 全屏模式下底部控制栏的特殊样式 */
-:fullscreen .fullscreen-bottom-controls {
-  opacity: 0.95;
-  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+.fullscreen-bottom-controls:hover {
+  opacity: 1 !important;
+  transform: translateX(-50%) translateY(-3px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
 }
 
-:fullscreen .fullscreen-bottom-controls:hover {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-5px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
-}
-
+/* Floating side controls in fullscreen mode */
 .fullscreen-side-controls {
   position: fixed;
-  /* right位置将通过JavaScript动态设置 */
   top: 50%;
   transform: translateY(-50%);
-  z-index: 100;
-  background-color: rgba(40, 40, 40, 0.95);
+  z-index: 9999;
+  background-color: rgba(30, 30, 30, 0.75);
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  padding: 10px 5px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(80, 80, 80, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  padding: 10px 6px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0.25;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
 }
 
-/* 全屏模式下右侧工具栏的特殊样式 */
-:fullscreen .fullscreen-side-controls {
-  opacity: 0.95;
-  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-:fullscreen .fullscreen-side-controls:hover {
-  opacity: 1;
-  transform: translateY(-50%) translateX(-5px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+.fullscreen-side-controls:hover {
+  opacity: 1 !important;
+  transform: translateY(-50%) translateX(-3px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
 }
 </style>

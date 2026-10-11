@@ -22,7 +22,7 @@
         <el-icon v-if="showSearchIcon" key="icon" style="cursor: pointer" :size="20" @click="showSearchIcon=false">
           <Search/>
         </el-icon>
-        <el-input v-else key="input" v-model="searchValue" placeholder="搜索当前目录下文件/文件夹" size="small"
+        <el-input v-else key="input" v-model="searchValue" placeholder="Search files/folders in current directory" size="small"
                   style="min-width: 200px" clearable @change="searchFile" @input="searchFile"/>
         <el-icon style="cursor: pointer" :size="20" class="mx-2" @click="getFileList('')">
           <Refresh/>
@@ -40,18 +40,18 @@
           <template #default>
             <el-space class="operationItemCss" @click="copyPath">
               <SvgIcon style="margin-left: 9px" icon="CopyIcon"/>
-              <span class="mx-2">复制路径</span>
+              <span class="mx-2">Copy Path</span>
             </el-space>
             <el-space class="operationItemCss" @click="jumpPath">
               <SvgIcon style="margin-left: 9px" icon="JumpIcon"/>
-              <span class="mx-2">跳转目录</span>
+              <span class="mx-2">Go to Directory</span>
             </el-space>
             <el-space class="operationItemCss" @click="handleBackPath(0)">
               <SvgIcon
                 style="margin-left: 11px;transform: rotate(180deg)"
                 :style="{ width:18 + 'px', height: 18 + 'px'}"
                 icon="BackRootIcon"/>
-              <span style="margin-left: 11px">回到根目录</span>
+              <span style="margin-left: 11px">Go to Root</span>
             </el-space>
           </template>
         </el-popover>
@@ -60,14 +60,14 @@
     <el-space class="mt-4" :size="40">
       <el-space style="cursor: pointer" @click="createNewFolder">
         <SvgIcon icon="NewFolderIcon"/>
-        <span>新建文件夹</span>
+        <span>New Folder</span>
       </el-space>
       <el-upload ref="upFileRef" style="margin-bottom: -5px" :auto-upload="false" :show-file-list="false"
                  :on-change="handleUploadFile">
         <template #trigger>
           <el-space style="cursor: pointer;">
             <SvgIcon icon="UploadFileIcon"/>
-            <span>上传文件</span>
+            <span>Upload File</span>
           </el-space>
         </template>
       </el-upload>
@@ -75,23 +75,23 @@
         :style="selectStatus === 3 || selectStatus === 2 || selectStatus === 1?{cursor: 'pointer'}:{color: '#a8a8a8',cursor: 'not-allowed'}"
         @click="topDownloadFile">
         <SvgIcon icon="DownloadIcon"/>
-        <span>下载</span>
+        <span>Download</span>
       </el-space>
       <el-space :style="selectStatus === 3?{cursor: 'pointer'}:{color: '#a8a8a8',cursor: 'not-allowed'}"
                 @click="topRenameFile">
         <SvgIcon icon="RenameIcon"/>
-        <span>重命名</span>
+        <span>Rename</span>
       </el-space>
       <el-space
         :style="selectStatus === 3 || selectStatus === 2 || selectStatus === 1?{cursor: 'pointer'}:{color: '#a8a8a8',cursor: 'not-allowed'}"
         @click="topDeleteFile">
         <SvgIcon icon="DeleteIcon"/>
-        <span>删除</span>
+        <span>Delete</span>
       </el-space>
       <el-space :style="selectStatus === 3?{cursor: 'pointer'}:{color: '#a8a8a8',cursor: 'not-allowed'}"
                 @click="topGetFileDetail">
         <SvgIcon icon="InfoIcon" :style="{ width:18 + 'px', height: 18 + 'px'}"/>
-        <span>详细信息</span>
+        <span>Details</span>
       </el-space>
     </el-space>
     <div id="showFileCard" class="card mt-4" :class="{ 'drag-over': isDragging }"
@@ -99,7 +99,7 @@
          @dragleave="handleDragLeave"
          @drop.prevent="handleDrop">
       <div class="overlay" v-if="isDragging">
-        将文件拖动到此处
+        Drag files here to upload
       </div>
       <div class="card-header">
         <el-row :gutter="10">
@@ -119,7 +119,7 @@
                 <CircleCheckFilled/>
               </el-icon>
               
-              <span>名称</span>
+              <span>Name</span>
               <el-icon v-if="sortType === 'desc'" :size="18" style="cursor: pointer" @click="sortFileList('asc')">
                 <Bottom/>
               </el-icon>
@@ -129,11 +129,11 @@
             </el-space>
           </el-col>
           <el-col :span="12">
-            <span>大小</span>
+            <span>Size</span>
             <div style="margin-left: 100px; margin-top: -24px" class="d-flex justify-content-between">
-              <span>修改时间</span>
-              <span>创建时间</span>
-              <span style="margin-right: 15px">操作</span>
+              <span>Modified</span>
+              <span>Created</span>
+              <span style="margin-right: 15px">Actions</span>
             </div>
           </el-col>
         </el-row>
@@ -189,20 +189,20 @@
                     <template #default>
                       <el-space class="operationItemCss" @click="rightDownloadFile(fileItem.name, fileItem.numType)">
                         <SvgIcon style="margin-left: 9px" icon="DownloadIcon"/>
-                        <span class="mx-2">下载</span>
+                        <span class="mx-2">Download</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="renameFile(fileItem.name)">
                         <SvgIcon style="margin-left: 9px" icon="RenameIcon"/>
-                        <span class="mx-2">重命名</span>
+                        <span class="mx-2">Rename</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="deleteFileSingle(fileItem.name, fileItem.numType)">
                         <SvgIcon style="margin-left: 9px" icon="DeleteIcon"/>
-                        <span class="mx-2">删除</span>
+                        <span class="mx-2">Delete</span>
                       </el-space>
                       <el-space class="operationItemCss" @click="getFileDetail(fileItem.name)">
                         <SvgIcon style="margin-left: 12px" icon="InfoIcon"
                                  :style="{ width:18 + 'px', height: 18 + 'px'}"/>
-                        <span style="margin-left: 9px">详细信息</span>
+                        <span style="margin-left: 9px">Details</span>
                       </el-space>
                     </template>
                   </el-popover>
@@ -210,7 +210,7 @@
               </el-col>
             </el-row>
           </div>
-          <el-empty v-else description="暂无文件"/>
+          <el-empty v-else description="No files found"/>
         </div>
       </el-scrollbar>
     </div>
@@ -255,7 +255,7 @@ const copyFileList = ref([])
 const nowDir = computed(() => {
   // 先判断路径是不是只有'/'，如果不是则用'/'切割路径字符串，获取最后一个元素
   if (dirPathName.value === '/') {
-    return '根目录'
+    return 'Root'
   } else {
     return dirPathName.value.split('/').filter(item => item !== '').pop()
   }
@@ -264,13 +264,13 @@ const selectStatus = computed(() => {
   if (fileItemList.value.length === 0) {
     return 0;
   }
-  // 检查是否所有对象的 isSelect 值都为 true
+  // Check if all are selected
   const allTrue = fileItemList.value.every(obj => obj.isSelect === true);
   
-  // 检查是否至少有一个对象的 isSelect 值为 true
+  // Check if at least one is selected
   const hasTrue = fileItemList.value.some(obj => obj.isSelect === true);
   
-  // 检查是否只有一个对象的 isSelect 值为 true
+  // Check if only one is selected
   const onlyOneTrue = fileItemList.value.filter(obj => obj.isSelect === true).length === 1;
   
   if (allTrue) {
@@ -285,9 +285,9 @@ const selectStatus = computed(() => {
 })
 const dirNameList = computed(() => {
   if (dirPathName.value === '/') {
-    return ['根目录']
+    return ['Root']
   } else {
-    return ['根目录', ...dirPathName.value.split('/').filter(item => item !== '')]
+    return ['Root', ...dirPathName.value.split('/').filter(item => item !== '')]
   }
 })
 const getFileList = async (filePath) => {
@@ -388,11 +388,10 @@ const handleBackPath = (index) => {
 }
 // 返回上一级目录
 const handleBackParent = () => {
-  console.log('返回上一级目录')
   if (dirPathName.value === '/') {
     ElNotification({
-      title: '提示',
-      message: '已经是根目录了',
+      title: 'Notice',
+      message: 'Already at root directory',
       type: 'warning'
     })
     return
@@ -468,8 +467,6 @@ const getFileDetail = async (fileName) => {
   fileDetailDrawerRef.value.openDrawer(nowFileInfo.value)
 }
 const copyPath = () => {
-  console.log('复制路径')
-  // 判断dirPathName.value头部是否有多余的'/'，如果有多余的'/'，只保留一个，如果没有则不变
   dirPathName.value = dirPathName.value.replace(/^\/{2,}/, '/');
   try {
     const input = document.createElement('input');
@@ -480,83 +477,72 @@ const copyPath = () => {
     input.select();
     navigator.clipboard.writeText(input.value).then(() => {
       ElNotification({
-        title: '提示',
-        message: '复制成功',
+        title: 'Success',
+        message: 'Path copied to clipboard',
         type: 'success'
       });
     }).catch(() => {
       ElNotification({
-        title: '错误',
-        message: '复制失败',
+        title: 'Error',
+        message: 'Failed to copy path',
         type: 'error'
       });
     }).finally(() => {
       document.body.removeChild(input);
     });
   } catch (error) {
-    console.error('复制路径出错:', error);
+    console.error('Copy path error:', error);
     ElNotification({
-      title: '错误',
-      message: '复制路径出错',
+      title: 'Error',
+      message: 'Error copying path',
       type: 'error'
     });
   }
 }
 const jumpPath = () => {
-  console.log('跳转目录', dirPathName.value)
-  // 判断dirPathName.value头部是否有多余的'/'，如果有多余的'/'，只保留一个，如果没有则不变
   dirPathName.value = dirPathName.value.replace(/^\/{2,}/, '/');
-  // 弹出提示框，并将输入框默认值设置为当前路径
-  ElMessageBox.prompt('请输入目录路径', '跳转目录', {
+  ElMessageBox.prompt('Enter directory path', 'Go to Directory', {
     inputValue: dirPathName.value,
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+    confirmButtonText: 'Go',
+    cancelButtonText: 'Cancel',
     inputPattern: /.*/,
-    inputErrorMessage: '请输入目录路径',
+    inputErrorMessage: 'Please enter a directory path',
   }).then(({value}) => {
-    console.log(value)
-    // 点击确定按钮后，将输入框的值赋给当前路径
     dirPathName.value = value;
-    // 获取当前路径下的文件列表
     getFileList('');
   }).catch(() => {
-    console.log('取消跳转目录');
   });
 }
 const createNewFolder = () => {
-  console.log('创建新文件夹')
-  // 判断dirPathName.value头部是否有多余的'/'，如果有多余的'/'，只保留一个，如果没有则不变
   dirPathName.value = dirPathName.value.replace(/^\/{2,}/, '/');
-  ElMessageBox.prompt('请输入文件夹名称', '创建新文件夹', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.prompt('Enter folder name', 'New Folder', {
+    confirmButtonText: 'Create',
+    cancelButtonText: 'Cancel',
     inputPattern: /.*/,
-    inputErrorMessage: '请输入文件夹名称',
+    inputErrorMessage: 'Please enter folder name',
   }).then(({value}) => {
     let creatPath = dirPathName.value === '/' ? '/' + value : dirPathName.value + '/' + value
     executeCommand('mkdir ' + creatPath).then((res) => {
-      console.log('创建新文件夹', res)
       if (res) {
         if (res.includes('File exists') || res.includes('Read-only')) {
           ElNotification({
-            title: '创建失败',
-            message: res.split(':')[2],
+            title: 'Failed',
+            message: res.split(':')[2] || res,
             type: 'warning'
           });
           return
         }
       }
       ElNotification({
-        title: '提示',
-        message: '创建成功',
+        title: 'Success',
+        message: 'Folder created successfully',
         type: 'success'
       });
       getFileList('')
     }).catch((err) => {
-      console.log('创建新文件夹', err)
       ElNotification({
-        title: '错误',
-        message: '创建失败',
+        title: 'Error',
+        message: 'Failed to create folder',
         type: 'error'
       });
     });
@@ -613,13 +599,10 @@ const handleUploadFile = async (event, file, fileList, isDrag) => {
   await getFileList('')
 }
 const deleteFileSingle = async (fileName, type) => {
-  // 判断dirPathName.value头部是否有多余的'/'，如果有多余的'/'，只保留一个，如果没有则不变
   dirPathName.value = dirPathName.value.replace(/^\/{2,}/, '/');
-  console.log('删除文件', dirPathName.value === '/' ? '/' + fileName : dirPathName.value + '/' + fileName)
-  // 弹出提示框
-  ElMessageBox.confirm('是否删除文件/文件夹？', '删除文件', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm('Delete this file / folder?', 'Delete File', {
+    confirmButtonText: 'Delete',
+    cancelButtonText: 'Cancel',
     type: 'warning',
   }).then(async () => {
     if (type === 8) {
@@ -628,19 +611,18 @@ const deleteFileSingle = async (fileName, type) => {
       await getAdbInstance().rm(dirPathName.value === '/' ? '/' + fileName : dirPathName.value + '/' + fileName, {recursive: true});
     }
     ElNotification({
-      title: '提示',
-      message: '删除成功',
+      title: 'Success',
+      message: 'Deleted successfully',
       type: 'success'
     });
     await getFileList('')
   }).catch(() => {
-    console.log('取消删除文件');
   });
 }
 const topDeleteFile = async () => {
-  ElMessageBox.confirm('是否删除选中的文件/文件夹？', '删除文件', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm('Delete selected files / folders?', 'Delete Files', {
+    confirmButtonText: 'Delete',
+    cancelButtonText: 'Cancel',
     type: 'warning',
   }).then(async () => {
     for (let i = 0; i < fileItemList.value.length; i++) {
@@ -653,66 +635,63 @@ const topDeleteFile = async () => {
       }
     }
     ElNotification({
-      title: '提示',
-      message: '删除成功',
+      title: 'Success',
+      message: 'Deleted successfully',
       type: 'success'
     });
     await getFileList('')
   }).catch(() => {
-    console.log('取消删除文件');
   });
 }
 const renameFile = async (fileName) => {
-  ElMessageBox.prompt('请输入新的文件名', '重命名', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.prompt('Enter new name', 'Rename', {
+    confirmButtonText: 'Rename',
+    cancelButtonText: 'Cancel',
     inputPattern: /.*/,
     inputValue: fileName,
-    inputErrorMessage: '请输入文件名',
+    inputErrorMessage: 'Please enter a name',
   }).then(async ({value}) => {
     if (value === '') {
       ElNotification({
-        title: '提示',
-        message: '文件名不能为空',
+        title: 'Notice',
+        message: 'File name cannot be empty',
         type: 'warning'
       });
       return
     }
     if (fileName === value) {
       ElNotification({
-        title: '提示',
-        message: '文件名相同',
+        title: 'Notice',
+        message: 'Name is unchanged',
         type: 'warning'
       });
       return
     }
     if (fileName.indexOf('/') !== -1) {
       ElNotification({
-        title: '提示',
-        message: '文件名不能包含/',
+        title: 'Notice',
+        message: 'File name cannot contain /',
         type: 'warning'
       });
       return
     }
-    // 判断dirPathName.value头部是否有多余的'/'，如果有多余的'/'，只保留一个，如果没有则不变
     dirPathName.value = dirPathName.value.replace(/^\/{2,}/, '/');
     let originalPath = dirPathName.value === '/' ? '/' + fileName : dirPathName.value + '/' + fileName
     let renamePath = dirPathName.value === '/' ? '/' + value : dirPathName.value + '/' + value
-    console.log('重命名文件', originalPath, renamePath)
     const res = await executeCommand(`mv ${originalPath} ${renamePath}`)
     if (res) {
       if (res.includes('File exists') || res.includes('Read-only')) {
         ElNotification({
-          title: '创建失败',
-          message: res.split(':')[2],
+          title: 'Failed',
+          message: res.split(':')[2] || res,
           type: 'warning'
         });
         return
       }
     }
     ElNotification({
-      title: '提示',
-      message: '重命名成功',
+      title: 'Success',
+      message: 'Renamed successfully',
       type: 'success'
     });
     await getFileList('')

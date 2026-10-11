@@ -51,21 +51,21 @@ const updateChartData = () => {
   for (let i = 0; i < length; i++) {
     const idx = startIdx + i;
     
-    // 下载流量 - 确保处理null值
+    // Download traffic
     const rxValue = networkRxHistory[idx];
     data.push({
       time: timeStamps[idx],
       value: rxValue !== null && rxValue !== undefined ? rxValue : 0,
-      type: '下载',
+      type: 'Download',
       rawValue: rxValue
     });
     
-    // 上传流量 - 确保处理null值
+    // Upload traffic
     const txValue = networkTxHistory[idx];
     data.push({
       time: timeStamps[idx],
       value: txValue !== null && txValue !== undefined ? txValue : 0,
-      type: '上传',
+      type: 'Upload',
       rawValue: txValue
     });
   }
