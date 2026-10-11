@@ -1,6 +1,6 @@
 <template>
   <div class="scrcpy-container">
-    <div class="content-wrapper" ref="fullScreenContainer">
+    <div :class="['content-wrapper', `mode-${screenMode}`]" ref="fullScreenContainer">
       <RenderContainer
         ref="renderRef"
         :classes="classes"
@@ -64,8 +64,11 @@
       <div class="fullscreen-bottom-controls" v-if="isFullscreen && !isLoading && !hasError">
         <DeviceOperateButton
           :press-key="pressKey"
-          :container-width="300"
+          :container-width="380"
           :is-fullscreen="isFullscreen"
+          :screen-mode="screenMode"
+          @toggle-fullscreen="toggleFullscreen"
+          @toggle-screen-mode="toggleScreenMode"
           class="mt-1"
         />
       </div>
@@ -89,6 +92,9 @@
         :press-key="pressKey"
         :container-width="calcWidthAndHeight[0]"
         :is-fullscreen="isFullscreen"
+        :screen-mode="screenMode"
+        @toggle-fullscreen="toggleFullscreen"
+        @toggle-screen-mode="toggleScreenMode"
         class="mt-1"
       />
       <!-- Sidebar Expand Button -->
@@ -138,6 +144,9 @@ const currentMouseY = ref(0);
 const currentAbsoluteX = ref(0);
 const currentAbsoluteY = ref(0);
 
+// Screen Mode: 'original' (like photo with black bars) or 'fill' (edge-to-edge no black bars)
+const screenMode = ref(localStorage.getItem('webadb_screen_mode') || 'original');
+
 // Destructure from useScrcpy
 const {
   width,
@@ -167,6 +176,34 @@ const {
   deviceRealHeight: getDeviceRealHeight,
   clientPositionToDevicePosition
 } = useScrcpy();
+
+// Toggle Screen Mode: Original Ratio vs Fill Mode
+const toggleScreenMode = () => {
+  if (screenMode.value === 'original') {
+    screenMode.value = 'fill';
+    ElMessage.success({
+      message: '↔️ Screen Mode: Fill Mode (Edge-to-Edge, No Black Bars)',
+      duration: 2500,
+      showClose: true
+    });
+  } else {
+    screenMode.value = 'original';
+    ElMessage.info({
+      message: '📺 Screen Mode: Original Ratio (Native Aspect Ratio, Like Photo)',
+      duration: 2500,
+      showClose: true
+    });
+  }
+  localStorage.setItem('webadb_screen_mode', screenMode.value);
+  applyScreenMode();
+};
+
+const applyScreenMode = () => {
+  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
+  if (canvas && isFullscreen.value) {
+    canvas.style.objectFit = screenMode.value === 'fill' ? 'fill' : 'contain';
+  }
+};
 
 // Pointer down handler to blur web inputs when clicking screen
 const handlePointerDown = async (event) => {
@@ -447,26 +484,43 @@ watch(connectionStatus, (newStatus) => {
 // Handle Fullscreen state changes
 const handleFullscreenChange = () => {
   isFullscreen.value = !!document.fullscreenElement;
+  const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
   
-  if (!isFullscreen.value) {
-    const canvas = renderRef.value?.renderContainer?.querySelector('canvas');
+  if (isFullscreen.value) {
+    if (canvas) {
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.maxWidth = '100vw';
+      canvas.style.maxHeight = '100vh';
+      canvas.style.objectFit = screenMode.value === 'fill' ? 'fill' : 'contain';
+      canvas.style.borderRadius = '0px';
+      canvas.style.boxShadow = 'none';
+      canvas.style.border = 'none';
+      canvas.style.margin = '0 auto';
+      canvas.style.display = 'block';
+    }
+    setTimeout(() => {
+      updateSidebarPosition();
+    }, 150);
+  } else {
     if (canvas) {
       canvas.style.width = '';
       canvas.style.height = '';
+      canvas.style.maxWidth = '';
       canvas.style.maxHeight = '';
+      canvas.style.objectFit = '';
+      canvas.style.borderRadius = '';
+      canvas.style.boxShadow = '';
+      canvas.style.border = '';
       canvas.style.margin = '';
-      changeStyle();
     }
+    changeStyle();
     
     const sidebar = document.querySelector('.fullscreen-side-controls');
     if (sidebar) {
       sidebar.style.left = '';
       sidebar.style.right = '';
     }
-  } else {
-    setTimeout(() => {
-      updateSidebarPosition();
-    }, 200);
   }
 };
 
@@ -706,73 +760,102 @@ defineExpose({
   border-radius: 20px !important;
 }
 
-/* Fullscreen mode original styles */
-:fullscreen .content-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100vw;
-  height: 100vh;
-  background-color: #303133;
+/* Fullscreen mode base container */
+.content-wrapper:fullscreen,
+.content-wrapper:-webkit-full-screen,
+.content-wrapper:-moz-full-screen {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  background-color: #000000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
-:fullscreen .video {
-  max-height: 95vh;
-  max-width: 95vw;
-  border-radius: 20px !important;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-  margin: -90px auto 0;
+/* Fullscreen video and canvas common */
+.content-wrapper:fullscreen :deep(.video),
+.content-wrapper:fullscreen :deep(canvas),
+.content-wrapper:-webkit-full-screen :deep(.video),
+.content-wrapper:-webkit-full-screen :deep(canvas),
+:fullscreen :deep(.video),
+:fullscreen :deep(canvas) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0 auto !important;
+  display: block !important;
+  transform: none !important;
+}
+
+/* Mode 1: Original Ratio Mode (like photo: media_1791709071423.jpg) */
+.content-wrapper.mode-original:fullscreen :deep(.video),
+.content-wrapper.mode-original:fullscreen :deep(canvas),
+.content-wrapper.mode-original:-webkit-full-screen :deep(.video),
+.content-wrapper.mode-original:-webkit-full-screen :deep(canvas) {
+  object-fit: contain !important;
+  background-color: #000000 !important;
+}
+
+/* Mode 2: Fill Mode (stretches to fill entire monitor edge-to-edge without black bars) */
+.content-wrapper.mode-fill:fullscreen :deep(.video),
+.content-wrapper.mode-fill:fullscreen :deep(canvas),
+.content-wrapper.mode-fill:-webkit-full-screen :deep(.video),
+.content-wrapper.mode-fill:-webkit-full-screen :deep(canvas) {
+  object-fit: fill !important;
 }
 
 .fullscreen-bottom-controls {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
-  width: 320px;
+  z-index: 9999;
+  width: 380px;
   background-color: rgba(40, 40, 40, 0.95);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   padding: 8px 10px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(80, 80, 80, 0.5);
-}
-
-:fullscreen .fullscreen-bottom-controls {
-  opacity: 0.95;
+  opacity: 0.35;
   transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-:fullscreen .fullscreen-bottom-controls:hover {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-5px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+.fullscreen-bottom-controls:hover {
+  opacity: 1 !important;
+  transform: translateX(-50%) translateY(-3px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
 }
 
 .fullscreen-side-controls {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 100;
+  z-index: 9999;
   background-color: rgba(40, 40, 40, 0.95);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   padding: 10px 5px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(80, 80, 80, 0.5);
-}
-
-:fullscreen .fullscreen-side-controls {
-  opacity: 0.95;
+  opacity: 0.35;
   transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-:fullscreen .fullscreen-side-controls:hover {
-  opacity: 1;
-  transform: translateY(-50%) translateX(-5px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+.fullscreen-side-controls:hover {
+  opacity: 1 !important;
+  transform: translateY(-50%) translateX(-3px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
 }
 </style>

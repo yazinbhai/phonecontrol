@@ -21,13 +21,30 @@
           <el-icon :size="16"><Menu /></el-icon>
         </el-button>
       </el-tooltip>
+
+      <!-- Screen Mode: Original Ratio (like photo) vs Fill Mode -->
+      <el-tooltip effect="dark" :content="screenModeTooltip" placement="top">
+        <el-button @click="handleToggleScreenMode" class="mode-btn">
+          <el-icon :size="16">
+            <ScaleToOriginal v-if="screenMode === 'original'" />
+            <Crop v-else />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <!-- Fullscreen Toggle -->
+      <el-tooltip effect="dark" :content="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'" placement="top">
+        <el-button @click="handleToggleFullscreen" class="fullscreen-btn">
+          <el-icon :size="16"><FullScreen /></el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
   </div>
 </template>
 
 <script setup>
 import { 
-  Menu, CopyDocument, House, Back
+  Menu, CopyDocument, House, Back, FullScreen, ScaleToOriginal, Crop
 } from "@element-plus/icons-vue";
 import { computed } from 'vue';
 
@@ -40,11 +57,23 @@ const props = defineProps({
   isFullscreen: {
     type: Boolean,
     default: false
+  },
+  screenMode: {
+    type: String,
+    default: 'original' // 'original' (like photo with black bars) or 'fill' (no black bars)
   }
 });
 
+const emit = defineEmits(['toggle-fullscreen', 'toggle-screen-mode']);
+
+const screenModeTooltip = computed(() => {
+  if (props.screenMode === 'original') {
+    return '📺 Current: Original Ratio (Like Photo with black bars) — Click for Fill Mode';
+  }
+  return '↔️ Current: Fill Mode (Edge-to-Edge, No black bars) — Click for Original Ratio';
+});
+
 const controlBarStyle = computed(() => {
-  // If container width is available, set to container width
   if (props.containerWidth && props.containerWidth > 0) {
     return {
       width: `${props.containerWidth}px`,
@@ -61,6 +90,14 @@ const handlePress = (key) => {
   if (props.pressKey) {
     props.pressKey(null, key);
   }
+};
+
+const handleToggleFullscreen = () => {
+  emit('toggle-fullscreen');
+};
+
+const handleToggleScreenMode = () => {
+  emit('toggle-screen-mode');
 };
 </script>
 
@@ -81,7 +118,7 @@ const handlePress = (key) => {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  padding: 0 50px;
+  padding: 0 30px;
 }
 
 .el-button {
@@ -97,7 +134,7 @@ const handlePress = (key) => {
 }
 
 .fullscreen-mode .button-container {
-  padding: 0 20px;
+  padding: 0 15px;
   display: flex;
   justify-content: space-around;
 }

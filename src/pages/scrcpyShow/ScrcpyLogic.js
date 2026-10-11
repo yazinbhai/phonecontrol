@@ -656,8 +656,25 @@ const useScrcpy = () => {
         }
 
         const canvasRect = canvas.getBoundingClientRect();
-        const pointerViewX = clamp((clientX - canvasRect.x) / canvasRect.width, 0, 1);
-        const pointerViewY = clamp((clientY - canvasRect.y) / canvasRect.height, 0, 1);
+        let pointerViewX = clamp((clientX - canvasRect.x) / canvasRect.width, 0, 1);
+        let pointerViewY = clamp((clientY - canvasRect.y) / canvasRect.height, 0, 1);
+
+        // 如果 canvas 采用 contain 模式（如原生比例全屏，带黑边），校准黑边偏移确保触控精准
+        if (canvas.style.objectFit === 'contain' && width.value > 0 && height.value > 0) {
+            const videoRatio = width.value / height.value;
+            const rectRatio = canvasRect.width / canvasRect.height;
+            if (rectRatio > videoRatio) {
+                // 左右黑边 (pillarbox)
+                const actualWidth = canvasRect.height * videoRatio;
+                const xOffset = (canvasRect.width - actualWidth) / 2;
+                pointerViewX = clamp((clientX - canvasRect.x - xOffset) / actualWidth, 0, 1);
+            } else if (rectRatio < videoRatio) {
+                // 上下黑边 (letterbox - 如相片中的 20:9 屏幕)
+                const actualHeight = canvasRect.width / videoRatio;
+                const yOffset = (canvasRect.height - actualHeight) / 2;
+                pointerViewY = clamp((clientY - canvasRect.y - yOffset) / actualHeight, 0, 1);
+            }
+        }
 
 
 
