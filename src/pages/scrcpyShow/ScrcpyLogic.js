@@ -121,7 +121,8 @@ const useScrcpy = () => {
     const pasteTextToDevice = async (text, directInjectOnly = false) => {
         if (!client || !client.controller || !text) return;
 
-        // 尝试通过 Scrcpy 剪贴板协议注入并触发系统级粘贴
+        let synced = false;
+        // 1. 优先尝试 Scrcpy 协议设置设备系统剪贴板 (带 paste: true)
         if (!directInjectOnly && typeof client.controller.setClipboard === 'function') {
             try {
                 await client.controller.setClipboard({
@@ -129,19 +130,39 @@ const useScrcpy = () => {
                     paste: true,
                     content: text,
                 });
+                synced = true;
                 console.log('Clipboard set on device with paste: true');
-                return;
             } catch (err) {
-                console.warn('client.controller.setClipboard failed, falling back to injectText:', err);
+                console.warn('client.controller.setClipboard failed:', err);
             }
         }
 
-        // 备用机制：直接使用 Scrcpy 字符流注入
+        // 2. 模拟注入 Ctrl+V 硬件按键，触发焦点输入框粘贴
         try {
-            await client.controller.injectText(text);
-            console.log('Text injected directly via client.controller.injectText');
+            await client.controller.injectKeyCode({
+                action: AndroidKeyEventAction.Down,
+                keyCode: AndroidKeyCode.KeyV,
+                repeat: 0,
+                metaState: AndroidKeyEventMeta.Ctrl,
+            });
+            await client.controller.injectKeyCode({
+                action: AndroidKeyEventAction.Up,
+                keyCode: AndroidKeyCode.KeyV,
+                repeat: 0,
+                metaState: AndroidKeyEventMeta.Ctrl,
+            });
         } catch (err) {
-            console.error('injectText also failed:', err);
+            console.warn('Ctrl+V simulation failed:', err);
+        }
+
+        // 3. 备用机制：若剪贴板设置未成功，直接使用 Scrcpy 字符流注入
+        if (!synced) {
+            try {
+                await client.controller.injectText(text);
+                console.log('Text injected directly via client.controller.injectText');
+            } catch (err) {
+                console.error('injectText also failed:', err);
+            }
         }
     };
 
@@ -164,7 +185,7 @@ const useScrcpy = () => {
             try {
                 text = await navigator.clipboard.readText();
             } catch (err) {
-                console.warn('navigator.clipboard.readText error:', err);
+                console.warn('navigator.clipboard.readText error in paste event:', err);
             }
         }
 
@@ -200,7 +221,7 @@ const useScrcpy = () => {
             return;
         }
 
-        if (!e || e.defaultPrevented) {
+        if (!e) {
             return;
         }
 
@@ -211,93 +232,84 @@ const useScrcpy = () => {
             return;
         }
 
-        // 3. 处理剪贴板粘贴快捷键 (Ctrl+V / Cmd+V / Ctrl+Shift+V)
+        // 3. 处理剪贴板粘贴快捷键 (Ctrl+V / Cmd+V)
         if ((e.ctrlKey || e.metaKey) && key && key.toLowerCase() === 'v') {
             if (e.type === 'keydown') {
-                if (e.shiftKey) {
-                    // Ctrl+Shift+V: 纯文本直接注入（类似官方 scrcpy 的 Ctrl+Shift+v）
-                    e.preventDefault();
-                    if (navigator.clipboard && navigator.clipboard.readText) {
-                        try {
-                            const text = await navigator.clipboard.readText();
-                            if (text) {
-                                lastPastedText = text;
-                                lastPasteTime = Date.now();
-                                await pasteTextToDevice(text, true);
-                            }
-                        } catch (err) {
-                            console.warn('Clipboard read error on Ctrl+Shift+V:', err);
-                        }
+                e.preventDefault();
+                let text = '';
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    try {
+                        text = await navigator.clipboard.readText();
+                    } catch (err) {
+                        console.warn('navigator.clipboard.readText on Ctrl+V error:', err);
                     }
+                }
+                if (text) {
+                    lastPastedText = text;
+                    lastPasteTime = Date.now();
+                    await pasteTextToDevice(text);
                 } else {
-                    // 常规 Ctrl+V: 允许浏览器触发 paste 事件，同时添加兜底处理
-                    setTimeout(async () => {
-                        const now = Date.now();
-                        if (now - lastPasteTime > 150 && navigator.clipboard && navigator.clipboard.readText) {
-                            try {
-                                const text = await navigator.clipboard.readText();
-                                if (text && (text !== lastPastedText || now - lastPasteTime > 300)) {
-                                    lastPastedText = text;
-                                    lastPasteTime = now;
-                                    await pasteTextToDevice(text, false);
-                                }
-                            } catch (err) {
-                                // 忽略剪贴板读取拒绝错误
-                            }
-                        }
-                    }, 50);
+                    // 若浏览器剪贴板权限受限，直接向 Android 发送 Ctrl+V 硬件按键触发手机端粘贴
+                    await client.controller.injectKeyCode({
+                        action: AndroidKeyEventAction.Down,
+                        keyCode: AndroidKeyCode.KeyV,
+                        repeat: 0,
+                        metaState: AndroidKeyEventMeta.Ctrl,
+                    });
+                    await client.controller.injectKeyCode({
+                        action: AndroidKeyEventAction.Up,
+                        keyCode: AndroidKeyCode.KeyV,
+                        repeat: 0,
+                        metaState: AndroidKeyEventMeta.Ctrl,
+                    });
                 }
             }
             return;
         }
 
-        // 4. 处理其他快捷键组合 (例如 Ctrl+A, Ctrl+C, Ctrl+X 等)
-        if (e.ctrlKey || e.metaKey) {
-            const finalKeyCode = AndroidKeyCode[e.code];
-            if (finalKeyCode) {
-                e.preventDefault();
-                const action = e.type === 'keydown' ? AndroidKeyEventAction.Down : AndroidKeyEventAction.Up;
-                let metaState = AndroidKeyEventMeta.Ctrl;
-                if (e.shiftKey) metaState |= AndroidKeyEventMeta.Shift;
-                if (e.altKey) metaState |= AndroidKeyEventMeta.Alt;
+        // 4. 解析按键对应的 AndroidKeyCode
+        let finalKeyCode = null;
+        if (key === 'Escape' || e.code === 'Escape') {
+            finalKeyCode = AndroidKeyCode.AndroidBack;
+        } else if (e.code && AndroidKeyCode[e.code] !== undefined) {
+            finalKeyCode = AndroidKeyCode[e.code];
+        } else if (CONTROL_KEY_MAP[key]) {
+            finalKeyCode = CONTROL_KEY_MAP[key];
+        }
+
+        // 5. 命中硬件按键时，以标准硬件键盘事件发送（同时发送 Down 与 Up，以及正确的修饰键状态）
+        if (finalKeyCode !== null) {
+            e.preventDefault();
+            const action = e.type === 'keydown' ? AndroidKeyEventAction.Down : AndroidKeyEventAction.Up;
+            let metaState = 0;
+            if (e.shiftKey) metaState |= AndroidKeyEventMeta.Shift;
+            if (e.ctrlKey) metaState |= AndroidKeyEventMeta.Ctrl;
+            if (e.altKey) metaState |= AndroidKeyEventMeta.Alt;
+            if (e.metaKey) metaState |= AndroidKeyEventMeta.Meta;
+            if (e.getModifierState && e.getModifierState('CapsLock')) metaState |= AndroidKeyEventMeta.CapsLock;
+            if (e.getModifierState && e.getModifierState('NumLock')) metaState |= AndroidKeyEventMeta.NumLock;
+
+            try {
                 await client.controller.injectKeyCode({
                     action,
                     keyCode: finalKeyCode,
                     repeat: e.repeat ? 1 : 0,
                     metaState,
                 });
+            } catch (err) {
+                console.error('injectKeyCode failed:', err);
             }
             return;
         }
 
-        // 5. 可打印单字符（英文、大小写、数字、符号、空格、中文/非拉丁字符输入等）
-        if (!e.altKey && key && key.length === 1) {
-            if (e.type === 'keydown') {
-                e.preventDefault();
-                try {
-                    await client.controller.injectText(key);
-                } catch (err) {
-                    console.error('injectText failed:', err);
-                }
-            }
-            return;
-        }
-
-        // 6. 控制键与导航键 (Backspace, Enter, Tab, 方向键, Escape, Delete 等)
-        const mappedCode = CONTROL_KEY_MAP[key] || AndroidKeyCode[e.code];
-        if (mappedCode) {
+        // 6. 未命中已知物理按键代码时（如中文/特殊非拉丁字符），在 keydown 时通过 injectText 注入
+        if (e.type === 'keydown' && !e.ctrlKey && !e.altKey && !e.metaKey && key && key.length === 1) {
             e.preventDefault();
-            const action = e.type === 'keydown' ? AndroidKeyEventAction.Down : AndroidKeyEventAction.Up;
-            let metaState = 0;
-            if (e.shiftKey) metaState |= AndroidKeyEventMeta.Shift;
-            if (e.altKey) metaState |= AndroidKeyEventMeta.Alt;
-
-            await client.controller.injectKeyCode({
-                action,
-                keyCode: mappedCode,
-                repeat: e.repeat ? 1 : 0,
-                metaState,
-            });
+            try {
+                await client.controller.injectText(key);
+            } catch (err) {
+                console.error('injectText failed for character:', key, err);
+            }
         }
     };
 

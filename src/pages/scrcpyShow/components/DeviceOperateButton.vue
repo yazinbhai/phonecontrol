@@ -22,6 +22,13 @@
         </el-button>
       </el-tooltip>
 
+      <!-- Paste or Input Text to Device -->
+      <el-tooltip effect="dark" content="Paste Clipboard / Send Text (Ctrl+V)" placement="top">
+        <el-button @click="handlePasteText" class="paste-btn">
+          <el-icon :size="16"><DocumentCopy /></el-icon>
+        </el-button>
+      </el-tooltip>
+
       <!-- Screen Mode: Original Ratio (like photo) vs Fill Mode -->
       <el-tooltip effect="dark" :content="screenModeTooltip" placement="top">
         <el-button @click="handleToggleScreenMode" class="mode-btn">
@@ -44,7 +51,7 @@
 
 <script setup>
 import { 
-  Menu, CopyDocument, House, Back, FullScreen, ScaleToOriginal, Crop
+  Menu, CopyDocument, House, Back, FullScreen, ScaleToOriginal, Crop, DocumentCopy
 } from "@element-plus/icons-vue";
 import { computed } from 'vue';
 
@@ -64,7 +71,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggle-fullscreen', 'toggle-screen-mode']);
+const emit = defineEmits(['toggle-fullscreen', 'toggle-screen-mode', 'paste-text']);
 
 const screenModeTooltip = computed(() => {
   if (props.screenMode === 'original') {
@@ -98,6 +105,10 @@ const handleToggleFullscreen = () => {
 
 const handleToggleScreenMode = () => {
   emit('toggle-screen-mode');
+};
+
+const handlePasteText = () => {
+  emit('paste-text');
 };
 </script>
 

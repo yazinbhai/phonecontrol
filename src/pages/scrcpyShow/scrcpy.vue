@@ -64,11 +64,12 @@
       <div class="fullscreen-bottom-controls" v-if="isFullscreen && !isLoading && !hasError">
         <DeviceOperateButton
           :press-key="pressKey"
-          :container-width="380"
+          :container-width="420"
           :is-fullscreen="isFullscreen"
           :screen-mode="screenMode"
           @toggle-fullscreen="toggleFullscreen"
           @toggle-screen-mode="toggleScreenMode"
+          @paste-text="handleToolbarPaste"
           class="mt-1"
         />
       </div>
@@ -95,6 +96,7 @@
         :screen-mode="screenMode"
         @toggle-fullscreen="toggleFullscreen"
         @toggle-screen-mode="toggleScreenMode"
+        @paste-text="handleToolbarPaste"
         class="mt-1"
       />
       <!-- Sidebar Expand Button -->
@@ -126,7 +128,7 @@ import {
   ScrcpyPointerId
 } from "@yume-chan/scrcpy";
 import { ArrowUp, ArrowDown } from "@element-plus/icons-vue";
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const renderRef = ref();
 const isLoading = ref(true);
@@ -174,7 +176,8 @@ const {
   rotation,
   deviceRealWidth: getDeviceRealWidth,
   deviceRealHeight: getDeviceRealHeight,
-  clientPositionToDevicePosition
+  clientPositionToDevicePosition,
+  pasteTextToDevice
 } = useScrcpy();
 
 // Toggle Screen Mode: Original Ratio vs Fill Mode
@@ -205,9 +208,48 @@ const applyScreenMode = () => {
   }
 };
 
-// Pointer down handler to blur web inputs when clicking screen
+// Toolbar paste handler
+const handleToolbarPaste = async () => {
+  let text = '';
+  try {
+    if (navigator.clipboard?.readText) {
+      text = await navigator.clipboard.readText();
+    }
+  } catch (err) {
+    console.warn('Direct clipboard read failed:', err);
+  }
+
+  if (text) {
+    await pasteTextToDevice(text);
+    ElMessage.success({
+      message: `📋 Pasted to device: "${text.length > 25 ? text.substring(0, 25) + '...' : text}"`,
+      duration: 2500,
+      showClose: true
+    });
+  } else {
+    // Show prompt dialog for user to paste or type text
+    ElMessageBox.prompt('Type or paste text to send to your device:', 'Send Text to Device', {
+      confirmButtonText: 'Send to Device',
+      cancelButtonText: 'Cancel',
+      inputPlaceholder: 'Enter text here...',
+      inputType: 'textarea',
+      roundButton: true,
+    }).then(async ({ value }) => {
+      if (value) {
+        await pasteTextToDevice(value);
+        ElMessage.success({
+          message: `✉️ Sent to device: "${value.length > 25 ? value.substring(0, 25) + '...' : value}"`,
+          duration: 2500,
+          showClose: true
+        });
+      }
+    }).catch(() => {});
+  }
+};
+
+// Pointer down handler to blur active elements when clicking screen
 const handlePointerDown = async (event) => {
-  if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+  if (document.activeElement && document.activeElement !== document.body) {
     document.activeElement.blur?.();
   }
   await originalHandlePointerDown(event);
@@ -819,7 +861,7 @@ defineExpose({
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  width: 380px;
+  width: 420px;
   background-color: rgba(40, 40, 40, 0.95);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);

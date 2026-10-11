@@ -3,6 +3,8 @@
     ref="renderContainer"
     :class="classes"
     :style="containerStyle"
+    tabindex="0"
+    style="outline: none;"
     @pointerdown="handlePointerDown"
     @pointermove="handlePointerMove"
     @pointerup="handlePointerUp"
