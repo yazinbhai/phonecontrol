@@ -1,7 +1,13 @@
 {
-  "name": "nowwebadb",
+  "name": "phonecontrol",
   "private": true,
   "version": "0.0.2",
+  "description": "Web-based Android device management and screen mirroring tool powered by WebUSB and ADB",
+  "homepage": "https://yazinbhai.github.io/phonecontrol/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yazinbhai/phonecontrol.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

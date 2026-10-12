@@ -1,7 +1,17 @@
-# 📱 NowWebAdb
+# 📱 PhoneControl (NowWebAdb)
 【[中文文档](./README-CN.md)】 | 【[English Document](./README.md)】
 
 NowWebAdb 是一个基于 Web 的 Android 设备管理工具，使用开源库 [ya-webadb](https://github.com/yume-chan/ya-webadb) 实现。它允许用户通过 Web 界面管理和交互本地的 Android 设备，提供各种设备信息检索和管理功能。
+
+## ℹ️ 关于项目 (About)
+- 🌐 **在线体验 / Web 应用**: [https://yazinbhai.github.io/phonecontrol/](https://yazinbhai.github.io/phonecontrol/)
+- 📦 **GitHub 仓库**: [https://github.com/yazinbhai/phonecontrol](https://github.com/yazinbhai/phonecontrol)
+- 🌐 **支持的浏览器**: Google Chrome、Microsoft Edge、Brave 等支持 WebUSB 的 Chromium 浏览器
+- 🔌 **使用要求**:
+  - Android 设备开启**开发者选项**并启用 **USB 调试**
+  - 通过 USB 数据线连接到电脑
+  - 手机无需安装任何第三方 App
+
 
 ## 🔥 最新更新
 
@@ -119,11 +129,11 @@ NowWebAdb
 ## 🚀 快速开始
 1. 克隆仓库：
     ```bash
-    git clone https://github.com/srrchysfzy/NowWebAdb.git
+    git clone https://github.com/yazinbhai/phonecontrol.git
     ```
 2. 安装依赖：
     ```bash
-    cd NowWebAdb
+    cd phonecontrol
     npm install
     ```
 3. 启动开发服务器：
