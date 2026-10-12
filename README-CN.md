@@ -130,7 +130,7 @@ NowWebAdb
     ```bash
     npm run dev
     ```
-4. 在浏览器中打开 http://localhost:5173 查看结果。
+4. 在浏览器中打开 https://yazinbhai.github.io/phonecontrol/ 查看结果。
 
 ## 📝 贡献
 欢迎提交 Issues 和 Pull Requests 来帮助改进项目！😊

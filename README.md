@@ -128,7 +128,7 @@ NowWebAdb
     ```bash
     npm run dev
     ```
-4. Open http://localhost:5173 in your browser to see the result.
+4. Open https://yazinbhai.github.io/phonecontrol/ in your browser to see the result.
 
 ## 📝 Contribution
 Feel free to submit Issues and Pull Requests to help improve the project! 😊
